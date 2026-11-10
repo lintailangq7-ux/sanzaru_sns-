@@ -12,6 +12,8 @@ const typeLabels = {
 class RevealPage extends StatelessWidget {
   const RevealPage({super.key});
 
+
+  ///HTML部分
   @override
   Widget build(BuildContext context) {
     final type = ApiClient.currentUser?['type'] as String? ?? '';
