@@ -49,4 +49,21 @@ class ApiClient {
           String username, String displayName, String password) =>
       _authenticate('/api/register',
           {'username': username, 'displayName': displayName, 'password': password}, 201);
+
+  /// 投稿一覧を取得
+  static Future<List<Map<String, dynamic>>> fetchPosts() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/posts'),
+      headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+     },
+    );
+
+    if (res.statusCode != 200) {
+     throw ApiException('投稿の取得に失敗しました');
+    }
+
+    final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+    return data.cast<Map<String, dynamic>>();
+  }        
 }
