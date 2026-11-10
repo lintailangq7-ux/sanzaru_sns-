@@ -9,6 +9,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+///API
 class _LoginPageState extends State<LoginPage> {
   final _username = TextEditingController();
   final _password = TextEditingController();
@@ -32,7 +33,9 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  @override
+
+
+  ///HTML部分
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('ログイン')),

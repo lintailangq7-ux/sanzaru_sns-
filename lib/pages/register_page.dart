@@ -8,6 +8,7 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
+///API
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _username = TextEditingController();
@@ -36,6 +37,8 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+
+  ///HTML部分
   @override
   Widget build(BuildContext context) {
     return Scaffold(
