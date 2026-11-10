@@ -39,7 +39,7 @@ const double gap = 16;
 
 // 画像検索ボタンのアイコン画像(assets に置いて pubspec.yaml に登録)
 const String micImagePath = 'assets/images/マイク.png';
-
+Image.asset('assets/images/MrDOG.png', width: 200)
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
