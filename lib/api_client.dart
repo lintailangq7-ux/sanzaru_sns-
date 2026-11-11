@@ -66,4 +66,13 @@ class ApiClient {
     final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
     return data.cast<Map<String, dynamic>>();
   }        
+///投稿を作成
+static Future<Map<String, dynamic>> createPost({ 
+  required String content,
+  required String visibility,}
+  ) {
+
 }
+  
+}
+

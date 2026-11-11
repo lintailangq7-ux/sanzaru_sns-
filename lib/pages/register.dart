@@ -11,7 +11,6 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final _formKey = GlobalKey<FormState>();
   final user = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
