@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
-import 'login_page.dart';
+import 'login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,7 +9,6 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-///API
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   List<Map<String, dynamic>> _posts = [];
