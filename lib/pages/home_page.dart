@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
 import 'login.dart';
-import '../post.dart';
+import 'post.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,6 +10,9 @@ class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
+
+
 
 class _HomePageState extends State<HomePage> {
 
@@ -53,6 +56,44 @@ class _HomePageState extends State<HomePage> {
     }
   }
   // ★ここまで追加
+
+  // サーバーから取得した投稿
+List<Map<String, dynamic>> serverPosts = [];
+bool _loading = true;
+String? _error;
+
+@override
+void initState() {
+  super.initState();
+  _loadPosts();
+}
+
+Future<void> _loadPosts() async {
+  setState(() {
+    _loading = true;
+    _error = null;
+  });
+  try {
+    final result = await ApiClient.fetchPosts();
+    if (!mounted) return;
+    setState(() {
+      serverPosts = result;
+      _loading = false;
+    });
+  } on ApiException catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _error = e.message;
+      _loading = false;
+    });
+  } catch (_) {
+    if (!mounted) return;
+    setState(() {
+      _error = '投稿の読み込みに失敗しました';
+      _loading = false;
+    });
+  }
+}
 
   // 投稿画面へ移動して、投稿内容を受け取る
   Future<void> openPostPage() async {
@@ -197,6 +238,7 @@ class _HomePageState extends State<HomePage> {
             );
           }),
 
+<<<<<<< HEAD
 
 
           // ★サーバーから取得した投稿
@@ -209,6 +251,15 @@ class _HomePageState extends State<HomePage> {
             Column(
               children: [
                 Text(_error!),
+=======
+          // サーバーの投稿
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            Column(
+              children: [
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+>>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: _loadPosts,
@@ -217,6 +268,7 @@ class _HomePageState extends State<HomePage> {
               ],
             )
           else if (serverPosts.isEmpty)
+<<<<<<< HEAD
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: Text('まだ投稿がありません')),
@@ -233,6 +285,24 @@ class _HomePageState extends State<HomePage> {
             }),
         ],
       ),
+=======
+            const Center(child: Text('まだ投稿がありません'))
+          else
+            ...serverPosts.map((post) {
+              final user = post['user'] as Map<String, dynamic>? ?? {};
+              final name = user['displayName'] ?? user['username'] ?? '不明';
+              final content = post['content'] ?? post['text'] ?? '';
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text(name.toString()),
+                  subtitle: Text(content.toString()),
+                ),
+              );
+            }),
+        ],        // ← children を閉じる「]」
+      ),          // ← ListView を閉じる「)」とカンマ
+>>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
       // 下部メニュー
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
