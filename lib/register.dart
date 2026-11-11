@@ -144,28 +144,27 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   const SizedBox(height: 5),
 
-                  // アイコン
+                  // アイコン画像
                   Container(
                     width: 170,
                     height: 108,
-                    alignment: const Alignment(-0.4, -0.5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CA632),
                       border: Border.all(
                         color: const Color(0xFF315C26),
                         width: 2,
-                      ),
+                       ),
                       borderRadius: BorderRadius.circular(100),
                     ),
-                    child: const Text(
-                      'icon',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                        width: 170,
+                        height: 108,
+                        fit: BoxFit.cover,
+                       ),
                       ),
                     ),
-                  ),
-
                   const SizedBox(height: 10),
 
                   // 見出し

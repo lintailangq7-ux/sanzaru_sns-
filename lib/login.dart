@@ -68,18 +68,28 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 28),
 
-                  // アイコン
+                  // アイコン画像
                   Container(
-                    width: 205, height: 130,
+                    width: 205,
+                    height: 130,
                     margin: const EdgeInsets.only(bottom: 19),
-                    alignment: const Alignment(-0.4, -0.5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CA632),
-                      border: Border.all(color: const Color(0xFF315C26), width: 2),
-                      borderRadius: BorderRadius.circular(100)),
-                    child: const Text('icon',
-                      style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
+                      border: Border.all(
+                        color: const Color(0xFF315C26),
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                          width: 205,
+                          height: 130,
+                          fit: BoxFit.cover,
+                        ),
+                       ),
+                      ),
 
                   const Text('ログイン',
                     style: TextStyle(fontSize: 32)),
@@ -169,17 +179,17 @@ class _LoginPageState extends State<LoginPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                               builder: (context) => const RegisterPage(),
-                              ),
-                             );
-                           },
+                                builder: (context) => const RegisterPage(),
+                               ),
+                              );
+                            },
                             child: const Text(
                               'アカウントを作成する',
                               style: TextStyle(
                                 color: Color(0xFF5799ED),
                                 fontSize: 14,
-                               ),
                               ),
+                             ),
                             ),
                       ],
                     ),
@@ -194,6 +204,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // リンクの共通デザイン
+  //
   Widget link(String text) {
     return GestureDetector(
       onTap: () => print('$text をクリック'),
