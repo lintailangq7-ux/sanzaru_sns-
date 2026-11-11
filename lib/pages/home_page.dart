@@ -15,6 +15,44 @@ class _HomePageState extends State<HomePage> {
 
   // 投稿一覧
   List<PostData> posts = [];
+ // ★ここから追加: サーバーから取得した投稿
+  List<Map<String, dynamic>> serverPosts = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await ApiClient.fetchPosts();
+      if (!mounted) return;
+      setState(() {
+        serverPosts = result;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = '投稿の読み込みに失敗しました';
+        _loading = false;
+      });
+    }
+  }
+  // ★ここまで追加
 
   // 投稿画面へ移動して、投稿内容を受け取る
   Future<void> openPostPage() async {
@@ -159,29 +197,42 @@ class _HomePageState extends State<HomePage> {
             );
           }),
 
-          // 既存のサンプル投稿
-          Card(
-            child: ListTile(
-              leading: const CircleAvatar(
-                child: Icon(Icons.person),
-              ),
-              title: const Text('ユーザー１'),
-              subtitle: const Text('こんにちは！'),
-            ),
-          ),
 
-          Card(
-            child: ListTile(
-              leading: const CircleAvatar(
-                child: Icon(Icons.person),
-              ),
-              title: const Text('ユーザー２'),
-              subtitle: const Text('今日もいい天気ですね'),
-            ),
-          ),
+
+          // ★サーバーから取得した投稿
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Column(
+              children: [
+                Text(_error!),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: _loadPosts,
+                  child: const Text('再読み込み'),
+                ),
+              ],
+            )
+          else if (serverPosts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('まだ投稿がありません')),
+            )
+          else
+            ...serverPosts.map((post) {
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text('${post['displayName'] ?? 'ユーザー'}'),
+                  subtitle: Text('${post['text'] ?? ''}'),
+                ),
+              );
+            }),
         ],
       ),
-
       // 下部メニュー
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -214,4 +265,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+void main() {
+  runApp(const MaterialApp(home: HomePage()));
 }
