@@ -9,6 +9,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+///API
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   List<Map<String, dynamic>> _posts = [];
