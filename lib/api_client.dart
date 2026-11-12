@@ -67,11 +67,41 @@ class ApiClient {
     return data.cast<Map<String, dynamic>>();
   }        
 ///投稿を作成
-static Future<Map<String, dynamic>> createPost({ 
-  required String content,
-  required String visibility,}
-  ) {
+static Future<int> createPost({
+  required String body,
+  required String visibility,
+  Uint8List? imageBytes,
+  String? imageName,
+  Uint8List? audioBytes,
+  String? audioName,
+}) async {
+  final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/posts'));
+  req.headers['Authorization'] = 'Bearer $token';
+  req.fields['body'] = body;
+  req.fields['visibility'] = visibility;
+  if (imageBytes != null) {
+    req.files.add(http.MultipartFile.fromBytes('image', imageBytes, filename: imageName ?? 'image.jpg'));
+  }
+  if (audioBytes != null) {
+    req.files.add(http.MultipartFile.fromBytes('audio', audioBytes, filename: audioName ?? 'audio.wav'));
+  }
 
+  final http.Response res;
+  try {
+    res = await http.Response.fromStream(await req.send());
+  } catch (_) {
+    throw ApiException('サーバーに接続できませんでした');
+  }
+  final Map<String, dynamic> data;
+  try {
+    data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+  } catch (_) {
+    throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
+  }
+  if (res.statusCode != 201) {
+    throw ApiException((data['error'] ?? '投稿に失敗しました') as String);
+  }
+  return data['id'] as int;
 }
   
 }
