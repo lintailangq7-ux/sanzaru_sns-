@@ -1,8 +1,10 @@
 
 import 'package:flutter/material.dart';
+import 'package:srusns_frontend/Search.Dart';
 import '../api_client.dart';
 import 'login.dart';
 import 'post.dart';
+import '../Search.Dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +17,26 @@ class HomePage extends StatefulWidget {
 
 
 class _HomePageState extends State<HomePage> {
+
+  //投稿一覧のスクロール管理
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose(){
+    _scrollController.dispose();
+    super.dispose();
+  }
+  //検索画面へ遷移
+  void openSearchPage() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const SearchPage(),
+    ),
+  );
+}
+ //選択中のタブ
+   int selectedTab = 0;
 
   // 投稿一覧
   List<PostData> posts = [];
@@ -128,9 +150,43 @@ Future<void> _loadPosts() async {
       ),
 
       body: ListView(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         children: [
+        //タブボタン
+        Row(children: [Expanded(child: ElevatedButton(onPressed:(){
+          setState(() {
+            selectedTab = 0;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: 
+          selectedTab == 0 ? Colors.blue : Colors.grey[300],
+          foregroundColor: 
+          selectedTab == 0 ? Colors.white : Colors.black,
+        ),
+        child: const Text('おすすめ'),
+        ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: ElevatedButton(
+          onPressed: (){
+            setState(() {
+              selectedTab = 1 ;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: 
+            selectedTab == 1 ? Colors.blue : Colors.grey[300],
+            foregroundColor: 
+            selectedTab == 1 ? Colors.white : Colors.black,
+          ),
+          child: const Text('フォロー中'),
+        ),
+        ),
 
+        ],
+        ),
           const Text(
             '投稿一覧',
             style: TextStyle(
@@ -308,8 +364,14 @@ Future<void> _loadPosts() async {
         currentIndex: 0,
 
         onTap: (index) {
-          if (index == 2) {
+          if(index == 1){
+            //検索画面へ
+            openSearchPage();
+          }else if (index == 2) {
+            //投稿作成画面へ
             openPostPage();
+          }else if (index == 3){
+            //マイページ画面へ
           }
         },
 
@@ -337,4 +399,179 @@ Future<void> _loadPosts() async {
 }
 void main() {
   runApp(const MaterialApp(home: HomePage()));
+}
+//投稿日時の表示
+String formatPostTime(DateTime dateTime) {
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+
+  if (difference.inMinutes < 1) {
+    return 'たった今';
+  } else if (difference.inHours < 1) {
+    return '${difference.inMinutes}分前';
+  } else if (difference.inDays < 1) {
+    return '${difference.inHours}時間前';
+  } else if (difference.inDays < 7) {
+    return '${difference.inDays}日前';
+  } else {
+    return '${dateTime.year}/'
+        '${dateTime.month.toString().padLeft(2, '0')}/'
+        '${dateTime.day.toString().padLeft(2, '0')}';
+  }
+}
+//いいね・コメント機能
+
+
+class PostActions extends StatefulWidget {
+  final DateTime createdAt;
+  final int initialLikeCount;
+  final List<String> initialComments;
+
+  const PostActions({
+    super.key,
+    required this.createdAt,
+    this.initialLikeCount = 0,
+    this.initialComments = const [],
+  });
+
+  @override
+  State<PostActions> createState() => _PostActionsState();
+}
+
+class _PostActionsState extends State<PostActions> {
+  bool isLiked = false;
+  bool showComments = false;
+
+  late int likeCount;
+  late List<String> comments;
+
+  final TextEditingController commentController =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    likeCount = widget.initialLikeCount;
+    comments = List<String>.from(widget.initialComments);
+  }
+
+  @override
+  void dispose() {
+    commentController.dispose();
+    super.dispose();
+  }
+
+  // コメント追加
+  void addComment() {
+    final text = commentController.text.trim();
+
+    if (text.isEmpty) return;
+
+    setState(() {
+      comments.add(text);
+      commentController.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(),
+
+        // 投稿日時
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            formatPostTime(widget.createdAt),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // いいね・コメント
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  isLiked = !isLiked;
+                  likeCount += isLiked ? 1 : -1;
+                });
+              },
+              icon: Icon(
+                isLiked
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: isLiked ? Colors.red : Colors.grey,
+              ),
+            ),
+
+            Text('$likeCount'),
+
+            const SizedBox(width: 20),
+
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  showComments = !showComments;
+                });
+              },
+              icon: const Icon(
+                Icons.comment_outlined,
+                color: Colors.blue,
+              ),
+            ),
+
+            Text('${comments.length}'),
+          ],
+        ),
+
+        // コメント欄
+        if (showComments) ...[
+          const Divider(),
+
+          ...comments.map((comment) {
+            return ListTile(
+              dense: true,
+              leading: const CircleAvatar(
+                radius: 16,
+                child: Icon(Icons.person, size: 18),
+              ),
+              title: Text(comment),
+            );
+          }),
+
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: commentController,
+                  decoration: const InputDecoration(
+                    hintText: 'コメントを入力...',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+
+              IconButton(
+                onPressed: addComment,
+                icon: const Icon(
+                  Icons.send,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
 }
