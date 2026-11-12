@@ -18,8 +18,11 @@ class PostData{
 }
 
 class PostPage extends StatefulWidget {
-  const PostPage({super.key});
+  final String userName;
+  final bool standalone;
+  const PostPage({super.key,required this.userName,this.standalone = false,});
   
+
  
 
 
@@ -132,6 +135,7 @@ Future<void> addAudio() async {
 }
 
 
+
 // 音声削除
 Future<void> removeAudio(int index) async {
   if (playingAudioIndex == index) {
@@ -179,36 +183,54 @@ Future<void> toggleAudio(int index) async {
         title: const Text('投稿作成',style: TextStyle(color:Colors.black),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          TextButton(
-            onPressed: (){
-            if(postController.text.trim().isEmpty &&
-            selectedImages.isEmpty &&
-            selectedAudios.isEmpty){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('投稿内容を入力してください'),
-              ),);
-              return;
-            }
-            //投稿データを作成
-            final newPost = PostData(
-              text: postController.text.trim(),
-              visibility: visibility, 
-              images: List<XFile>.from(selectedImages), 
-              audios: List<PlatformFile>.from(selectedAudios),
-            );
-            //ホーム画面に戻り、投稿データを渡す
-            Navigator.pop(context,newPost);
-          },
-          child: const Text('投稿',
-          style: TextStyle(
-            color:Colors.blue,
-            fontSize:16,
+       
+actions: [
+  TextButton(
+    onPressed: () {
+      if (postController.text.trim().isEmpty &&
+          selectedImages.isEmpty &&
+          selectedAudios.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('投稿内容を入力してください'),
           ),
+        );
+        return;
+      }
+
+      // 投稿データを作成
+      final newPost = PostData(
+        text: postController.text.trim(),
+        visibility: visibility,
+        images: List<XFile>.from(selectedImages),
+        audios: List<PlatformFile>.from(selectedAudios),
+      );
+
+      // 前の画面があれば投稿データを渡して戻る
+      if (widget.standalone){
+        // 直接投稿画面を起動した場合
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('投稿しました！'),
           ),
-          ),
-        ],
+        );
+      } else {
+        //ホーム画面から開いた場合
+        Navigator.pop(context,newPost);
+      }
+    },
+    child: const Text(
+      '投稿',
+      style: TextStyle(
+        color: Colors.blue,
+        fontSize: 16,
+      ),
+    ),
+  ),
+],
 
       ),
+      
         // 画面本体
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -218,9 +240,9 @@ Future<void> toggleAudio(int index) async {
           children: [
 
             // アカウント表示
-            const Row(
+            Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   backgroundColor: Colors.blue,
                   child: Icon(
                     Icons.person,
@@ -229,8 +251,8 @@ Future<void> toggleAudio(int index) async {
                 ),
                 SizedBox(width: 10),
                 Text(
-                  'ユーザー名',
-                  style: TextStyle(
+                  widget.userName,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
