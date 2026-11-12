@@ -238,7 +238,7 @@ Future<void> _loadPosts() async {
             );
           }),
 
-<<<<<<< HEAD
+
 
 
           // ★サーバーから取得した投稿
@@ -251,7 +251,7 @@ Future<void> _loadPosts() async {
             Column(
               children: [
                 Text(_error!),
-=======
+
           // サーバーの投稿
           if (_loading)
             const Center(child: CircularProgressIndicator())
@@ -259,7 +259,7 @@ Future<void> _loadPosts() async {
             Column(
               children: [
                 Text(_error!, style: const TextStyle(color: Colors.red)),
->>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
+
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: _loadPosts,
@@ -268,7 +268,7 @@ Future<void> _loadPosts() async {
               ],
             )
           else if (serverPosts.isEmpty)
-<<<<<<< HEAD
+
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: Text('まだ投稿がありません')),
@@ -285,8 +285,7 @@ Future<void> _loadPosts() async {
             }),
         ],
       ),
-=======
-            const Center(child: Text('まだ投稿がありません'))
+   const Center(child: Text('まだ投稿がありません'))
           else
             ...serverPosts.map((post) {
               final user = post['user'] as Map<String, dynamic>? ?? {};
@@ -302,7 +301,7 @@ Future<void> _loadPosts() async {
             }),
         ],        // ← children を閉じる「]」
       ),          // ← ListView を閉じる「)」とカンマ
->>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
+
       // 下部メニュー
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
