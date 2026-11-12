@@ -175,8 +175,8 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _openPostPage() async {
     await Navigator.push<PostData>(
       context,
-      MaterialPageRoute(builder: (context) => const PostPage()),
-    );
+      MaterialPageRoute(builder: (context) => PostPage(userName: 'exampleUser')),
+       );
   }
 
   // ---------- 下部メニューを押したとき ----------

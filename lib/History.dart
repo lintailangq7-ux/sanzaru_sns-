@@ -166,7 +166,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Future<void> _openPostPage() async {
     await Navigator.push<PostData>(
       context,
-      MaterialPageRoute(builder: (context) => const PostPage()),
+      MaterialPageRoute(builder: (context) => const PostPage(userName: 'YourUserName')),
     );
   }
 
