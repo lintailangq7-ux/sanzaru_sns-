@@ -6,7 +6,7 @@ void main() {
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: HomePage(userName: 'テストユーザー',),
     ),
   );
 }

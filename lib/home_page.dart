@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'post.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String userName;
+  const HomePage({super.key,required this.userName,});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -19,7 +20,10 @@ class _HomePageState extends State<HomePage> {
     final newPost = await Navigator.push<PostData>(
       context,
       MaterialPageRoute(
-        builder: (context) => const PostPage(),
+        builder: (context) => PostPage(
+          userName: widget.userName,
+          standalone: false,
+        ),
       ),
     );
 
