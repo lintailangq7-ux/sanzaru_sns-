@@ -18,6 +18,44 @@ class _HomePageState extends State<HomePage> {
 
   // 投稿一覧
   List<PostData> posts = [];
+ // ★ここから追加: サーバーから取得した投稿
+  List<Map<String, dynamic>> serverPosts = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await ApiClient.fetchPosts();
+      if (!mounted) return;
+      setState(() {
+        serverPosts = result;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = '投稿の読み込みに失敗しました';
+        _loading = false;
+      });
+    }
+  }
+  // ★ここまで追加
 
   // サーバーから取得した投稿
 List<Map<String, dynamic>> serverPosts = [];
@@ -200,6 +238,20 @@ Future<void> _loadPosts() async {
             );
           }),
 
+
+
+
+          // ★サーバーから取得した投稿
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Column(
+              children: [
+                Text(_error!),
+
           // サーバーの投稿
           if (_loading)
             const Center(child: CircularProgressIndicator())
@@ -207,6 +259,7 @@ Future<void> _loadPosts() async {
             Column(
               children: [
                 Text(_error!, style: const TextStyle(color: Colors.red)),
+
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: _loadPosts,
@@ -215,7 +268,24 @@ Future<void> _loadPosts() async {
               ],
             )
           else if (serverPosts.isEmpty)
-            const Center(child: Text('まだ投稿がありません'))
+
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('まだ投稿がありません')),
+            )
+          else
+            ...serverPosts.map((post) {
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text('${post['displayName'] ?? 'ユーザー'}'),
+                  subtitle: Text('${post['text'] ?? ''}'),
+                ),
+              );
+            }),
+        ],
+      ),
+   const Center(child: Text('まだ投稿がありません'))
           else
             ...serverPosts.map((post) {
               final user = post['user'] as Map<String, dynamic>? ?? {};
@@ -231,6 +301,7 @@ Future<void> _loadPosts() async {
             }),
         ],        // ← children を閉じる「]」
       ),          // ← ListView を閉じる「)」とカンマ
+
       // 下部メニュー
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -263,4 +334,7 @@ Future<void> _loadPosts() async {
       ),
     );
   }
+}
+void main() {
+  runApp(const MaterialApp(home: HomePage()));
 }
