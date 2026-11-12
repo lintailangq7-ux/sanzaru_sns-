@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import '../api_client.dart';
-import 'login_page.dart';
+import 'login.dart';
+import 'post.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,10 +11,15 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-///API
+
+
+
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-  List<Map<String, dynamic>> _posts = [];
+
+  // 投稿一覧
+  List<PostData> posts = [];
+ // ★ここから追加: サーバーから取得した投稿
+  List<Map<String, dynamic>> serverPosts = [];
   bool _loading = true;
   String? _error;
 
@@ -28,10 +35,10 @@ class _HomePageState extends State<HomePage> {
       _error = null;
     });
     try {
-      final posts = await ApiClient.fetchPosts();
+      final result = await ApiClient.fetchPosts();
       if (!mounted) return;
       setState(() {
-        _posts = posts;
+        serverPosts = result;
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -40,7 +47,7 @@ class _HomePageState extends State<HomePage> {
         _error = e.message;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = '投稿の読み込みに失敗しました';
@@ -48,192 +55,287 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
-  
-  ///html部分
+  // ★ここまで追加
+
+  // サーバーから取得した投稿
+List<Map<String, dynamic>> serverPosts = [];
+bool _loading = true;
+String? _error;
+
+@override
+void initState() {
+  super.initState();
+  _loadPosts();
+}
+
+Future<void> _loadPosts() async {
+  setState(() {
+    _loading = true;
+    _error = null;
+  });
+  try {
+    final result = await ApiClient.fetchPosts();
+    if (!mounted) return;
+    setState(() {
+      serverPosts = result;
+      _loading = false;
+    });
+  } on ApiException catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _error = e.message;
+      _loading = false;
+    });
+  } catch (_) {
+    if (!mounted) return;
+    setState(() {
+      _error = '投稿の読み込みに失敗しました';
+      _loading = false;
+    });
+  }
+}
+
+  // 投稿画面へ移動して、投稿内容を受け取る
+  Future<void> openPostPage() async {
+    final newPost = await Navigator.push<PostData>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PostPage(),
+      ),
+    );
+
+    if (!mounted) return;
+
+    // 投稿内容をホーム画面に追加
+    if (newPost != null) {
+      setState(() {
+        posts.insert(0, newPost);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = ApiClient.currentUser;
-    final displayName = user?['displayName'] ?? user?['username'] ?? 'ユーザー';
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SaruSNS'),
+        title: const Text('さんさるトーク'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadPosts,
-            tooltip: '更新',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: 'ログアウト',
+            onPressed: () {},
+            icon: const Icon(Icons.search),
           ),
         ],
       ),
-      body: _buildBody(displayName),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('投稿機能はこれから実装します')),
-          );
-        },
-        child: const Icon(Icons.edit),
-      ),
-    );
-  }
 
-  Widget _buildBody(String displayName) {
-    switch (_currentIndex) {
-      case 0:
-        return _buildHomeTab();
-      case 1:
-        return const Center(child: Text('検索画面（これから実装）'));
-      case 2:
-        return _buildMyPageTab(displayName);
-      default:
-        return const SizedBox.shrink();
-    }
-  }
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
 
-  // 投稿一覧
-  Widget _buildHomeTab() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadPosts,
-              child: const Text('再読み込み'),
+          const Text(
+            '投稿一覧',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-          ],
-        ),
-      );
-    }
-    if (_posts.isEmpty) {
-      return const Center(child: Text('まだ投稿がありません'));
-    }
+          ),
 
-    return RefreshIndicator(
-      onRefresh: _loadPosts,
-      child: ListView.builder(
-        itemCount: _posts.length,
-        itemBuilder: (context, index) {
-          final post = _posts[index];
-          final user = post['user'] as Map<String, dynamic>? ?? {};
-          final content = post['content'] ?? post['text'] ?? '';
-          final createdAt = post['createdAt'] ?? post['created_at'] ?? '';
+          const SizedBox(height: 16),
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        child: Text(
-                          (user['displayName'] ?? user['username'] ?? '?')
-                              .toString()
-                              .characters
-                              .first
-                              .toUpperCase(),
+          // 新しく投稿した内容を表示
+          ...posts.map((post) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    // アカウント表示（現在は仮）
+                    const Row(
+                      children: [
+                        CircleAvatar(
+                          child: Icon(Icons.person),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user['displayName'] ?? user['username'] ?? '不明',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              '@${user['username'] ?? ''}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
+                        SizedBox(width: 10),
+                        Text(
+                          'ユーザー名',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // 公開範囲
+                    Text(
+                      post.visibility,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
                       ),
-                      Text(
-                        createdAt.toString(),
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // テキスト
+                    if (post.text.isNotEmpty)
+                      Text(post.text),
+
+                    // 画像
+                    if (post.images.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: post.images.map((image) {
+                          return FutureBuilder(
+                            future: image.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    snapshot.data!,
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                  ),
+                                );
+                              }
+
+                              return const SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(content.toString()),
-                ],
+
+                    // 音声
+                    ...post.audios.map((audio) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.audio_file,
+                          color: Colors.blue,
+                        ),
+                        title: Text(
+                          audio.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
-            ),
-          );
+            );
+          }),
+
+<<<<<<< HEAD
+
+
+          // ★サーバーから取得した投稿
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Column(
+              children: [
+                Text(_error!),
+=======
+          // サーバーの投稿
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            Column(
+              children: [
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+>>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: _loadPosts,
+                  child: const Text('再読み込み'),
+                ),
+              ],
+            )
+          else if (serverPosts.isEmpty)
+<<<<<<< HEAD
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('まだ投稿がありません')),
+            )
+          else
+            ...serverPosts.map((post) {
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text('${post['displayName'] ?? 'ユーザー'}'),
+                  subtitle: Text('${post['text'] ?? ''}'),
+                ),
+              );
+            }),
+        ],
+      ),
+=======
+            const Center(child: Text('まだ投稿がありません'))
+          else
+            ...serverPosts.map((post) {
+              final user = post['user'] as Map<String, dynamic>? ?? {};
+              final name = user['displayName'] ?? user['username'] ?? '不明';
+              final content = post['content'] ?? post['text'] ?? '';
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text(name.toString()),
+                  subtitle: Text(content.toString()),
+                ),
+              );
+            }),
+        ],        // ← children を閉じる「]」
+      ),          // ← ListView を閉じる「)」とカンマ
+>>>>>>> 3d16f26afa3434f5374664ccca93f0ca2381245e
+      // 下部メニュー
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
+
+        onTap: (index) {
+          if (index == 2) {
+            openPostPage();
+          }
         },
+
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'ホーム',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: '検索',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_box),
+            label: '投稿',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'マイページ',
+          ),
+        ],
       ),
     );
   }
-
-  // マイページ
-  Widget _buildMyPageTab(String displayName) {
-    final user = ApiClient.currentUser;
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        const CircleAvatar(radius: 40, child: Icon(Icons.person, size: 40)),
-        const SizedBox(height: 16),
-        Text(
-          displayName,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '@${user?['username'] ?? ''}',
-          style: const TextStyle(color: Colors.grey),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        ListTile(
-          leading: const Icon(Icons.edit),
-          title: const Text('プロフィール編集'),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('プロフィール編集はこれから実装します')),
-            );
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('ログアウト'),
-          onTap: _logout,
-        ),
-      ],
-    );
-  }
-
-  void _logout() {
-    ApiClient.token = null;
-    ApiClient.currentUser = null;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-  }
+}
+void main() {
+  runApp(const MaterialApp(home: HomePage()));
 }
