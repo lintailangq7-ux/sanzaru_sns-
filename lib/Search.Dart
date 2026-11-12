@@ -1,45 +1,123 @@
 import 'package:flutter/material.dart';
+import 'post.dart';
 
 void main() => runApp(const MyApp());
 
 // ============================================================
-// 【書き換えポイント1】画面に出す文字・データはここにまとめる
+// 【1】文字：画面に出す文字はここだけ書き換えればOK
 // ============================================================
-const String placeholderText = 'テキスト検索';
-const String imageSearchLabel1 = 'ここで';
-const String imageSearchLabel2 = '画像検索';
-const String voiceSearchLabel1 = 'マイクで';
-const String voiceSearchLabel2 = '音声検索';
-const String candidateTitle = '検索画像候補';
+class Texts {
+  static const placeholder = 'テキスト検索';
+  static const imageSearch1 = 'ここで';
+  static const imageSearch2 = '画像検索';
+  static const voiceSearch1 = 'マイクで';
+  static const voiceSearch2 = '音声検索';
+  static const candidateTitle = '検索画像候補';
+  static const appTitle = '検索画面';
+}
 
-// 入力中に出る履歴(type: text=文字 / voice=音声 / image=画像)
-// { type, 左の小さい文字(音声の時間など), 表示する文字 }
-const List<List<String>> history = [
-  ['text', '', 'イタリアンレストラン'],
-  ['voice', '1:20', '音声'],
-  ['image', '', '画像'],
+// ============================================================
+// 【2】色：色はここだけ書き換えればOK
+// ============================================================
+class Palette {
+  static const Color line = Colors.black; // 枠線
+  static const Color text = Colors.black; // 文字
+  static const Color bg = Colors.white; // 背景
+
+  // 画像検索ボタンの四角形の色
+  static const Color imageSearchBox = Color(0xFFE57373);
+
+  // 履歴の「画像」行の四角形の色
+  static const Color historyImageBox = Color(0xFF64B5F6);
+
+  // 検索画像候補の四角形の色(9個。数を変えたら中身も増減する)
+  static const List<Color> candidates = [
+    Color(0xFFE57373), // 赤
+    Color(0xFFFFB74D), // オレンジ
+    Color(0xFFFFF176), // 黄
+    Color(0xFF81C784), // 緑
+    Color(0xFF4DB6AC), // 青緑
+    Color(0xFF64B5F6), // 青
+    Color(0xFF9575CD), // 紫
+    Color(0xFFF06292), // ピンク
+    Color(0xFFA1887F), // 茶
+  ];
+}
+
+// ============================================================
+// 【3】サイズ：大きさ・すき間はここだけ書き換えればOK
+// ============================================================
+class Sizes {
+  // 全体
+  static const double gap = 16; // 横のすき間
+  static const double mainLeft = gap; // メイン領域の左位置(ツールバー削除後)
+
+  // 検索バー
+  static const double searchBarHeight = 68;
+  static const double backButtonWidth = 56;
+  static const double backButtonHeight = 40;
+  static const double searchIcon = 36;
+  static const double dropdownWidth = 44;
+  static const double dropdownHeight = 36;
+
+  // 履歴リスト
+  static const double historyTop = 12 + 44; // 検索バーの下
+  static const double historyLeft = mainLeft + backButtonWidth + gap + 48;
+  static const double historyRight = gap + 48;
+  static const double historyRowHeight = 34;
+  static const double historyImageWidth = 28; // 「画像」行の四角形
+  static const double historyImageHeight = 32;
+
+  // 画像検索 / 音声検索ボタン
+  static const double modeIconWidth = 86; // 画像検索ボタンの四角形
+  static const double modeIconHeight = 100;
+  static const double modeButtonRadius = 32;
+
+  // 検索画像候補
+  static const int candidateColumns = 3; // 横に並べる数
+  static const double candidateSpacing = 12;
+  static const double candidateAspect = 140 / 150; // 横÷縦
+  static const double candidateRadius = 2;
+}
+
+// ============================================================
+// 【4】データ：履歴・下部メニューの中身はここで書き換える
+// ============================================================
+enum HistoryKind { text, voice, image }
+
+class HistoryItem {
+  final HistoryKind kind;
+  final String sub; // 左の小さい文字(音声の時間など)
+  final String label; // 表示する文字
+  const HistoryItem(this.kind, this.sub, this.label);
+}
+
+const List<HistoryItem> historyItems = [
+  HistoryItem(HistoryKind.text, '', 'イタリアンレストラン'),
+  HistoryItem(HistoryKind.voice, '1:20', '音声'),
+  HistoryItem(HistoryKind.image, '', '画像'),
 ];
 
-// 検索画像候補(今は仮の色。後で画像パスに差し替える)
-// 画像にするときは下の Candidate ウィジェットのコメント部分を有効にする
-const List<Color> candidates = [
-  Color(0xFF5B4A8A), Color(0xFF5A9AD6), Color(0xFF4A4A7A),
-  Color(0xFF8A5A7A), Color(0xFF2F3B6B), Color(0xFF6AB0E0),
-  Color(0xFF7A6A4A), Color(0xFF4A7A6A), Color(0xFFA06A5A),
+// 下部メニュー(ホーム画面と同じ並び。順番を変えたら _onNavTap の番号も合わせる)
+class NavIndex {
+  static const int home = 0;
+  static const int search = 1;
+  static const int post = 2;
+  static const int myPage = 3;
+
+  static const int current = search; // この画面で選ばれている項目
+}
+
+const List<BottomNavigationBarItem> bottomNavItems = [
+  BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
+  BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
+  BottomNavigationBarItem(icon: Icon(Icons.add_box), label: '投稿'),
+  BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
 ];
 
 // ============================================================
-// 【書き換えポイント2】サイズ・色はここだけ変えればOK
+// アプリ本体
 // ============================================================
-const double toolbarWidth = 180; // ツールバーの幅
-const Color lineColor = Colors.black; // 枠線の色
-const Color textColor = Colors.black;
-const Color bgColor = Colors.white;
-const double gap = 16;
-
-// 画像検索ボタンのアイコン画像(assets に置いて pubspec.yaml に登録)
-const String micImagePath = 'assets/images/マイク.png';
-Image.asset('assets/images/MrDOG.png', width: 200)
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -47,12 +125,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: '検索画面',
+      title: Texts.appTitle,
       theme: ThemeData(
-        scaffoldBackgroundColor: bgColor,
+        scaffoldBackgroundColor: Palette.bg,
         textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: textColor,
-              displayColor: textColor,
+              bodyColor: Palette.text,
+              displayColor: Palette.text,
             ),
       ),
       home: const SearchPage(),
@@ -60,6 +138,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// ============================================================
+// 検索画面
+// ============================================================
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -90,6 +171,29 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
+  // ---------- 投稿作成画面へ移動 ----------
+  Future<void> _openPostPage() async {
+    await Navigator.push<PostData>(
+      context,
+      MaterialPageRoute(builder: (context) => PostPage(userName: 'exampleUser')),
+       );
+  }
+
+  // ---------- 下部メニューを押したとき ----------
+  void _onNavTap(int index) {
+    switch (index) {
+      case NavIndex.post:
+        _openPostPage();
+        break;
+      // 他の画面ができたら、ここに移動の処理を足す
+      case NavIndex.home:
+      case NavIndex.search:
+      case NavIndex.myPage:
+        break;
+    }
+  }
+
+  // ---------- 画面全体の組み立て ----------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,45 +207,32 @@ class _SearchPageState extends State<SearchPage> {
           },
           child: Stack(
             children: [
-              // ---------- メイン領域 ----------
+              // メイン領域
               Positioned.fill(
-                left: toolbarWidth + 24,
-                right: gap,
+                left: Sizes.mainLeft,
+                right: Sizes.gap,
                 child: _buildMain(),
               ),
-              // ---------- ツールバー(仮)：スクロールしても動かない ----------
-              Positioned(
-                top: 8,
-                left: 8,
-                bottom: 8,
-                width: toolbarWidth,
-                child: _buildToolbar(),
-              ),
-              // ---------- 履歴リスト(検索バーの下に重ねる) ----------
+              // 履歴リスト(検索バーの下に重ねる)
               if (_historyOpen && _hasText)
-                Positioned(
-                  top: 12 + 44, // 検索バーの下
-                  left: toolbarWidth + 24 + 56 + gap + 48,
-                  right: gap + 48,
-                  child: _buildHistory(),
+                const Positioned(
+                  top: Sizes.historyTop,
+                  left: Sizes.historyLeft,
+                  right: Sizes.historyRight,
+                  child: _HistoryList(items: historyItems),
                 ),
             ],
           ),
         ),
       ),
-    );
-  }
 
-  // ---------- ツールバー(仮) ----------
-  Widget _buildToolbar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border.all(color: lineColor),
-        borderRadius: BorderRadius.circular(24),
+      // 下部メニュー
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: NavIndex.current,
+        onTap: _onNavTap,
+        items: bottomNavItems,
       ),
-      alignment: Alignment.center,
-      child: const _VerticalText('ツールバー', fontSize: 28),
     );
   }
 
@@ -152,35 +243,44 @@ class _SearchPageState extends State<SearchPage> {
         // 検索バー：スクロールしても上に張り付く
         SliverPersistentHeader(
           pinned: true,
-          delegate: _StickyHeaderDelegate(height: 68, child: _buildSearchRow()),
-        ),
-        // 画像検索 / 音声検索ボタン(見かけだけ)
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: _buildModeRow(),
+          delegate: _StickyHeaderDelegate(
+            height: Sizes.searchBarHeight,
+            child: _buildSearchRow(),
           ),
         ),
-        // 検索画像候補
+        // 画像検索 / 音声検索ボタン
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: _ModeRow(),
+          ),
+        ),
+        // 「検索画像候補」の見出し
         const SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
-            child: Text(candidateTitle,
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              Texts.candidateTitle,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
+        // 検索画像候補(色付き四角形)
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 140 / 150,
+              crossAxisCount: Sizes.candidateColumns,
+              mainAxisSpacing: Sizes.candidateSpacing,
+              crossAxisSpacing: Sizes.candidateSpacing,
+              childAspectRatio: Sizes.candidateAspect,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, i) => Candidate(color: candidates[i], index: i),
-              childCount: candidates.length,
+              (context, i) => ColorBox(
+                color: Palette.candidates[i],
+                radius: Sizes.candidateRadius,
+              ),
+              childCount: Palette.candidates.length,
             ),
           ),
         ),
@@ -188,139 +288,169 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  // ---------- 検索バー ----------
+  // ---------- 検索バー(戻る + 検索欄) ----------
   Widget _buildSearchRow() {
     return Container(
-      color: bgColor,
+      color: Palette.bg,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          // 戻るボタン(見かけだけ)
-          SizedBox(
-            width: 56,
-            height: 40,
-            child: InkWell(
-              onTap: () {},
-              child: CustomPaint(painter: _BackArrowPainter()),
-            ),
+          // 戻るボタン：投稿作成画面(post.dart の AppBar)と同じ標準の矢印。
+          // 押すと前の画面に戻る(戻る先がなければ何もしない)
+          const SizedBox(
+            width: Sizes.backButtonWidth,
+            height: Sizes.backButtonHeight,
+            child: BackButton(color: Palette.text),
           ),
-          const SizedBox(width: gap),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: lineColor),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  const _SearchIcon(size: 36),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      style: const TextStyle(fontSize: 18),
-                      decoration: const InputDecoration(
-                        hintText: placeholderText,
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  // ▼ボタン：文字が入ると出る。押すと履歴を開閉
-                  if (_hasText)
-                    InkWell(
-                      onTap: () => setState(() => _historyOpen = !_historyOpen),
-                      child: Container(
-                        width: 44,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: lineColor),
-                          color: bgColor,
-                        ),
-                        alignment: Alignment.center,
-                        child: CustomPaint(
-                          size: const Size(36, 30),
-                          painter: _TrianglePainter(),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+          const SizedBox(width: Sizes.gap),
+          Expanded(child: _buildSearchField()),
         ],
       ),
     );
   }
 
-  // ---------- 入力中の履歴リスト(見かけだけ：選んでも何も起きない) ----------
-  Widget _buildHistory() {
+  // ---------- 検索欄(虫めがね + 入力 + ▼) ----------
+  Widget _buildSearchField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Palette.line),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          const _SearchIcon(size: Sizes.searchIcon),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              style: const TextStyle(fontSize: 18),
+              decoration: const InputDecoration(
+                hintText: Texts.placeholder,
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+          // ▼ボタン：文字が入ると出る。押すと履歴を開閉
+          if (_hasText)
+            InkWell(
+              onTap: () => setState(() => _historyOpen = !_historyOpen),
+              child: Container(
+                width: Sizes.dropdownWidth,
+                height: Sizes.dropdownHeight,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Palette.line),
+                  color: Palette.bg,
+                ),
+                alignment: Alignment.center,
+                child: CustomPaint(
+                  size: const Size(36, 30),
+                  painter: _TrianglePainter(),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// 画面の部品
+// ============================================================
+
+/// 入力中の履歴リスト(見かけだけ：選んでも何も起きない)
+class _HistoryList extends StatelessWidget {
+  final List<HistoryItem> items;
+  const _HistoryList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
     return Material(
-      color: bgColor,
+      color: Palette.bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        children: [for (final item in items) _HistoryRow(item: item)],
+      ),
+    );
+  }
+}
+
+/// 履歴の1行
+class _HistoryRow extends StatelessWidget {
+  final HistoryItem item;
+  const _HistoryRow({required this.item});
+
+  // 行の左側のアイコン部分
+  Widget _leading() {
+    switch (item.kind) {
+      case HistoryKind.text:
+        return const _SearchIcon(size: 26);
+      case HistoryKind.voice:
+        return Row(
+          children: [
+            const _MicIcon(width: 18, height: 24, stroke: 9),
+            const SizedBox(width: 4),
+            Text(item.sub, style: const TextStyle(fontSize: 11)),
+          ],
+        );
+      case HistoryKind.image:
+        return const ColorBox(
+          width: Sizes.historyImageWidth,
+          height: Sizes.historyImageHeight,
+          color: Palette.historyImageBox,
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: Sizes.historyRowHeight,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Palette.line)),
+      ),
+      child: Row(
         children: [
-          for (final h in history)
-            Container(
-              height: 34,
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: lineColor)),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 44,
-                    child: Row(
-                      children: [
-                        if (h[0] == 'text')
-                          const _SearchIcon(size: 26)
-                        else if (h[0] == 'voice') ...[
-                          const _MicIcon(width: 18, height: 24, stroke: 9),
-                          const SizedBox(width: 4),
-                          Text(h[1], style: const TextStyle(fontSize: 11)),
-                        ] else
-                          Container(width: 28, height: 32, decoration: _thumbDecoration()),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(h[2],
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-            ),
+          SizedBox(width: 44, child: _leading()),
+          const SizedBox(width: 10),
+          Text(
+            item.label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ],
       ),
     );
   }
+}
 
-  // ---------- 画像検索 / 音声検索ボタン(見かけだけ) ----------
-  Widget _buildModeRow() {
-    return Row(
+/// 画像検索 / 音声検索ボタンの行
+class _ModeRow extends StatelessWidget {
+  const _ModeRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
       children: [
         Expanded(
           child: _ModeButton(
-            icon: Image.asset(
-              micImagePath,
-              width: 86,
-              height: 100,
-              // 画像がまだ無いときは仮のグラデーションを表示
-              errorBuilder: (_, __, ___) =>
-                  Container(width: 86, height: 100, decoration: _thumbDecoration()),
+            icon: ColorBox(
+              width: Sizes.modeIconWidth,
+              height: Sizes.modeIconHeight,
+              color: Palette.imageSearchBox,
             ),
-            label1: imageSearchLabel1,
-            label2: imageSearchLabel2,
+            label1: Texts.imageSearch1,
+            label2: Texts.imageSearch2,
           ),
         ),
-        const SizedBox(width: 4),
-        const Expanded(
+        SizedBox(width: 4),
+        Expanded(
           child: _ModeButton(
             icon: _MicIcon(width: 80, height: 100, stroke: 7),
-            label1: voiceSearchLabel1,
-            label2: voiceSearchLabel2,
+            label1: Texts.voiceSearch1,
+            label2: Texts.voiceSearch2,
           ),
         ),
       ],
@@ -328,47 +458,40 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-// ============================================================
-// 部品
-// ============================================================
-
-BoxDecoration _thumbDecoration() => const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF2F2F66), Color(0xFF8A5A7A), Color(0xFF3A4A6A)],
-        stops: [0, 0.55, 1],
-      ),
-    );
-
-/// 画像検索 / 音声検索ボタン
+/// 画像検索 / 音声検索ボタン1つ(見かけだけ)
 class _ModeButton extends StatelessWidget {
   final Widget icon;
   final String label1;
   final String label2;
-  const _ModeButton(
-      {required this.icon, required this.label1, required this.label2});
+  const _ModeButton({
+    required this.icon,
+    required this.label1,
+    required this.label2,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {}, // 見かけだけ
-      borderRadius: BorderRadius.circular(32),
+      onTap: () {},
+      borderRadius: BorderRadius.circular(Sizes.modeButtonRadius),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
-          color: bgColor,
-          border: Border.all(color: lineColor),
-          borderRadius: BorderRadius.circular(32),
+          color: Palette.bg,
+          border: Border.all(color: Palette.line),
+          borderRadius: BorderRadius.circular(Sizes.modeButtonRadius),
         ),
         child: Column(
           children: [
-            SizedBox(height: 100, child: Center(child: icon)),
+            SizedBox(height: Sizes.modeIconHeight, child: Center(child: icon)),
             Text(
               '$label1\n$label2',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16, height: 1.8),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                height: 1.8,
+              ),
             ),
           ],
         ),
@@ -377,40 +500,32 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-/// 検索画像候補1枚
-class Candidate extends StatelessWidget {
+/// 色付きの四角形(画像の代わり)
+/// 本物の画像にするときは、build の中身を
+///   Image.asset('assets/images/xxx.png', fit: BoxFit.cover)
+/// に差し替えるだけでよい(使っている場所はすべてこの部品を通る)
+class ColorBox extends StatelessWidget {
   final Color color;
-  final int index;
-  const Candidate({super.key, required this.color, required this.index});
+  final double? width; // 省略すると、置かれた場所いっぱいに広がる
+  final double? height;
+  final double radius;
+  const ColorBox({
+    super.key,
+    required this.color,
+    this.width,
+    this.height,
+    this.radius = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(2),
-      // 画像に差し替えるとき：下の Container をやめて、Image.asset の行を有効にする
-      // child: Image.asset(candidatePaths[index], fit: BoxFit.cover),
-      child: Container(color: color),
-    );
-  }
-}
-
-/// 縦書きテキスト(ツールバー用)
-class _VerticalText extends StatelessWidget {
-  final String text;
-  final double fontSize;
-  const _VerticalText(this.text, {required this.fontSize});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final ch in text.characters)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: fontSize * 0.2),
-            child: Text(ch, style: TextStyle(fontSize: fontSize)),
-          ),
-      ],
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(radius),
+      ),
     );
   }
 }
@@ -427,7 +542,8 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
       child;
 
   @override
@@ -435,8 +551,11 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.child != child || old.height != height;
 }
 
-// ---------- アイコン(SVGの代わりにCustomPaint) ----------
+// ============================================================
+// アイコン(SVGの代わりにCustomPaint)
+// ============================================================
 
+/// 虫めがね
 class _SearchIcon extends StatelessWidget {
   final double size;
   const _SearchIcon({required this.size});
@@ -455,24 +574,30 @@ class _SearchPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(Offset(16 * s, 16 * s), 11 * s, p..strokeWidth = 3.5 * s);
-    canvas.drawLine(Offset(24 * s, 24 * s), Offset(36 * s, 36 * s),
-        p..strokeWidth = 4 * s);
+    canvas.drawLine(
+        Offset(24 * s, 24 * s), Offset(36 * s, 36 * s), p..strokeWidth = 4 * s);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
+/// マイク
 class _MicIcon extends StatelessWidget {
   final double width;
   final double height;
   final double stroke;
-  const _MicIcon(
-      {required this.width, required this.height, required this.stroke});
+  const _MicIcon({
+    required this.width,
+    required this.height,
+    required this.stroke,
+  });
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-      size: Size(width, height), painter: _MicPainter(stroke: stroke));
+        size: Size(width, height),
+        painter: _MicPainter(stroke: stroke),
+      );
 }
 
 class _MicPainter extends CustomPainter {
@@ -489,7 +614,9 @@ class _MicPainter extends CustomPainter {
     // マイク本体
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          const Rect.fromLTWH(27, 4, 26, 52), const Radius.circular(13)),
+        const Rect.fromLTWH(27, 4, 26, 52),
+        const Radius.circular(13),
+      ),
       Paint()..color = Colors.black,
     );
 
@@ -502,8 +629,11 @@ class _MicPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
     final path = Path()
       ..moveTo(10, 42)
-      ..arcToPoint(const Offset(70, 42),
-          radius: const Radius.circular(30), clockwise: false)
+      ..arcToPoint(
+        const Offset(70, 42),
+        radius: const Radius.circular(30),
+        clockwise: false,
+      )
       ..moveTo(40, 72)
       ..lineTo(40, 90)
       ..moveTo(22, 92)
@@ -516,29 +646,7 @@ class _MicPainter extends CustomPainter {
   bool shouldRepaint(covariant _MicPainter old) => old.stroke != stroke;
 }
 
-class _BackArrowPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 56, size.height / 40);
-    final p = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()
-      ..moveTo(52, 20)
-      ..lineTo(8, 20)
-      ..moveTo(22, 5)
-      ..lineTo(6, 20)
-      ..lineTo(22, 35);
-    canvas.drawPath(path, p);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
+/// ▼
 class _TrianglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

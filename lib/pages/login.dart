@@ -1,10 +1,7 @@
-import 'register.dart';
 import 'package:flutter/material.dart';
-
-void main() => runApp(const MaterialApp(
-  debugShowCheckedModeBanner: false,
-  home: LoginPage(),
-));
+import '../api_client.dart';
+import 'home_page.dart';
+import 'register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,31 +12,50 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool showPassword = false;
+  bool _busy = false;
+  String? _error;
 
-  final email = TextEditingController();
-  final password = TextEditingController();
+  final _username = TextEditingController();
+  final _password = TextEditingController();
 
   // 入力欄の共通デザイン
   InputDecoration inputStyle({Widget? icon}) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 7, vertical: 4),
-      border: const OutlineInputBorder(
-        borderRadius: BorderRadius.zero),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
       enabledBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.zero,
-        borderSide: BorderSide(color: Color(0xFF17394A), width: 2)),
+        borderSide: BorderSide(color: Color(0xFF17394A), width: 2),
+      ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.zero,
-        borderSide: BorderSide(color: Color(0xFF4CA632), width: 2)),
+        borderSide: BorderSide(color: Color(0xFF4CA632), width: 2),
+      ),
       suffixIcon: icon,
     );
   }
 
+  Future<void> _login() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ApiClient.login(_username.text.trim(), _password.text);
+      if (!mounted) return;
+      Navigator.of(context)
+          .pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   void dispose() {
-    email.dispose();
-    password.dispose();
+    _username.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -224,13 +240,16 @@ Widget build(BuildContext context) {
 }
 
   // リンクの共通デザイン
-  //
   Widget link(String text) {
     return GestureDetector(
       onTap: () => print('$text をクリック'),
-      child: Text(text,
+      child: Text(
+        text,
         style: const TextStyle(
-          color: Color(0xFF5799ED), fontSize: 14)),
+          color: Color(0xFF5799ED),
+          fontSize: 14,
+        ),
+      ),
     );
   }
 }
