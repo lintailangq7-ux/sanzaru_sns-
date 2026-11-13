@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'post.dart';
-import 'search_result.dart'; // 追加
+import 'search_result.dart';
+
 void main() => runApp(const MyApp());
 
 // ============================================================
@@ -170,6 +171,7 @@ class _SearchPageState extends State<SearchPage> {
     _focusNode.dispose();
     super.dispose();
   }
+
   // ---------- テキスト検索を実行 ----------
   void _search() {
     final keyword = _controller.text.trim();
@@ -189,7 +191,7 @@ class _SearchPageState extends State<SearchPage> {
     await Navigator.push<PostData>(
       context,
       MaterialPageRoute(builder: (context) => PostPage(userName: 'exampleUser')),
-       );
+    );
   }
 
   // ---------- 下部メニューを押したとき ----------
@@ -324,10 +326,6 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- 検索欄(虫めがね + 入力 + ▼) ----------
   Widget _buildSearchField() {
-    GestureDetector(
-      onTap: _search,
-      child: const _SearchIcon(size: Sizes.searchIcon),
-    ),
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -336,12 +334,18 @@ class _SearchPageState extends State<SearchPage> {
       ),
       child: Row(
         children: [
-          const _SearchIcon(size: Sizes.searchIcon),
+          // 虫めがね：押すとテキスト検索を実行
+          GestureDetector(
+            onTap: _search,
+            child: const _SearchIcon(size: Sizes.searchIcon),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
+              textInputAction: TextInputAction.search, // キーボードの「検索」キー
+              onSubmitted: (_) => _search(), // Enter / 検索キーで実行
               style: const TextStyle(fontSize: 18),
               decoration: const InputDecoration(
                 hintText: Texts.placeholder,
