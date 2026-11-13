@@ -1,7 +1,10 @@
-import 'package:flutter/material.dart';
-import '../api_client.dart';
-import 'home_page.dart';
 import 'register.dart';
+import 'package:flutter/material.dart';
+
+void main() => runApp(const MaterialApp(
+  debugShowCheckedModeBanner: false,
+  home: LoginPage(),
+));
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,50 +15,31 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool showPassword = false;
-  bool _busy = false;
-  String? _error;
 
-  final _username = TextEditingController();
-  final _password = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
 
   // 入力欄の共通デザイン
   InputDecoration inputStyle({Widget? icon}) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 7, vertical: 4),
+      border: const OutlineInputBorder(
+        borderRadius: BorderRadius.zero),
       enabledBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.zero,
-        borderSide: BorderSide(color: Color(0xFF17394A), width: 2),
-      ),
+        borderSide: BorderSide(color: Color(0xFF17394A), width: 2)),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.zero,
-        borderSide: BorderSide(color: Color(0xFF4CA632), width: 2),
-      ),
+        borderSide: BorderSide(color: Color(0xFF4CA632), width: 2)),
       suffixIcon: icon,
     );
   }
 
-  Future<void> _login() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await ApiClient.login(_username.text.trim(), _password.text);
-      if (!mounted) return;
-      Navigator.of(context)
-          .pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   @override
   void dispose() {
-    _username.dispose();
-    _password.dispose();
+    email.dispose();
+    password.dispose();
     super.dispose();
   }
 
@@ -76,23 +60,19 @@ class _LoginPageState extends State<LoginPage> {
                   topLeft: Radius.circular(75),
                   topRight: Radius.circular(75),
                   bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
+                  bottomRight: Radius.circular(40)),
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'さんさるトーク!!',
-                    style: TextStyle(fontSize: 18),
-                  ),
+                  const Text('さんさるトーク!!',
+                    style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 28),
 
-                  // アイコン
+                  // アイコン画像
                   Container(
                     width: 205,
                     height: 130,
                     margin: const EdgeInsets.only(bottom: 19),
-                    alignment: const Alignment(-0.4, -0.5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CA632),
                       border: Border.all(
@@ -101,16 +81,18 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       borderRadius: BorderRadius.circular(100),
                     ),
-                    child: const Text(
-                      'icon',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                          width: 205,
+                          height: 130,
+                          fit: BoxFit.cover,
+                        ),
+                       ),
+                      ),
 
-                  const Text(
-                    'ログイン',
-                    style: TextStyle(fontSize: 32),
-                  ),
+                  const Text('ログイン',
+                    style: TextStyle(fontSize: 32)),
                   const SizedBox(height: 14),
 
                   SizedBox(
@@ -118,68 +100,51 @@ class _LoginPageState extends State<LoginPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'メールアドレス',
-                          style: TextStyle(fontSize: 17),
-                        ),
+                        const Text('メールアドレス',
+                          style: TextStyle(fontSize: 17)),
                         const SizedBox(height: 5),
                         SizedBox(
                           height: 33,
                           child: TextField(
-                            controller: _username,
+                            controller: email,
                             keyboardType: TextInputType.emailAddress,
                             decoration: inputStyle(),
                           ),
                         ),
 
                         const SizedBox(height: 15),
-                        const Text(
-                          'パスワード',
-                          style: TextStyle(fontSize: 17),
-                        ),
+                        const Text('パスワード',
+                          style: TextStyle(fontSize: 17)),
                         const SizedBox(height: 5),
                         SizedBox(
                           height: 40,
                           child: TextField(
-                            controller: _password,
+                            controller: password,
                             obscureText: !showPassword,
                             enableInteractiveSelection: true,
                             decoration: inputStyle(
                               icon: IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 35,
-                                  minHeight: 35,
-                                ),
-                                icon: Icon(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 35,
+                                minHeight: 35,
+                              ),
+                              icon: Icon(
                                   showPassword
                                       ? Icons.visibility_off
                                       : Icons.visibility,
-                                  color: Colors.black,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    showPassword = !showPassword;
-                                  });
-                                },
+                                    color: Colors.black,
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      showPassword = !showPassword;
+                                    });
+                                  },
+                                 ),
+                               ),
                               ),
                             ),
-                          ),
-                        ),
-
-                        // エラー表示
-                        if (_error != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _error!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-
                         const SizedBox(height: 25),
 
                         // ログインボタン
@@ -187,56 +152,45 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           height: 29,
                           child: ElevatedButton(
-                            onPressed: _busy ? null : _login,
+                            onPressed: () {
+                              print(email.text);
+                              print(password.text);
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFFFF24),
                               foregroundColor: Colors.red,
                               elevation: 0,
                               padding: EdgeInsets.zero,
                               shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
-                              ),
+                                borderRadius: BorderRadius.zero),
                             ),
-                            child: _busy
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.red,
-                                    ),
-                                  )
-                                : const Text(
-                                    'ログイン',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
+                            child: const Text('ログイン',
+                              style: TextStyle(fontSize: 13)),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
-                        // パスワードを忘れた方
+                        // リンク
                         link('パスワードを忘れた方'),
                         const SizedBox(height: 13),
-
-                        // アカウント作成
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const RegisterPage(),
+                               ),
+                              );
+                            },
+                            child: const Text(
+                              'アカウントを作成する',
+                              style: TextStyle(
+                                color: Color(0xFF5799ED),
+                                fontSize: 14,
                               ),
-                            );
-                          },
-                          child: const Text(
-                            'アカウントを作成する',
-                            style: TextStyle(
-                              color: Color(0xFF5799ED),
-                              fontSize: 14,
+                             ),
                             ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -250,16 +204,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // リンクの共通デザイン
+  //
   Widget link(String text) {
     return GestureDetector(
       onTap: () => print('$text をクリック'),
-      child: Text(
-        text,
+      child: Text(text,
         style: const TextStyle(
-          color: Color(0xFF5799ED),
-          fontSize: 14,
-        ),
-      ),
+          color: Color(0xFF5799ED), fontSize: 14)),
     );
   }
 }
