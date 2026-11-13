@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+
+
 
 String get baseUrl {
   if (kIsWeb) return 'http://localhost:8080/SaruSNS';
@@ -73,62 +77,63 @@ class ApiClient {
   static Future<int> createPost({
     required String body,
     required String visibility,
-    Uint8List? imageBytes,
-    String? imageName,
-    Uint8List? audioBytes,
-    String? audioName,
+    required List<XFile> images,
+    required List<PlatformFile> audios,
   }) async {
-    final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/posts'));
-    req.headers['Authorization'] = 'Bearer $token';
-    req.fields['body'] = body;
-    req.fields['visibility'] = visibility;
-    if (imageBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('image', imageBytes, filename: imageName ?? 'image.jpg'));
-   }
-    if (audioBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('audio', audioBytes, filename: audioName ?? 'audio.wav'));
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/posts'),
+    );
+
+    // ヘッダー
+    if (token != null && token!.isNotEmpty) {
+      req.headers['Authorization'] = 'Bearer $token';
     }
 
+    // テキスト部分
+    req.fields['body'] = body;
+    req.fields['visibility'] = visibility;
+
+    // 画像を追加（複数）
+    for (var image in images) {
+      req.files.add(await http.MultipartFile.fromPath(
+        'images',
+        image.path,
+        filename: image.name,
+      ));
+    }
+
+    // 音声を追加（複数）
+    for (var audio in audios) {
+      req.files.add(await http.MultipartFile.fromPath(
+        'audios', 
+        audio.path!,
+        filename: audio.name,
+      ));
+    }
+
+    // 送信実行
     final http.Response res;
     try {
-      res = await http.Response.fromStream(await req.send());
+      final streamed = await req.send();
+      res = await http.Response.fromStream(streamed);
     } catch (_) {
       throw ApiException('サーバーに接続できませんでした');
     }
+
+    // レスポンス解析
     final Map<String, dynamic> data;
     try {
       data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     } catch (_) {
       throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
     }
+
     if (res.statusCode != 201) {
       throw ApiException((data['error'] ?? '投稿に失敗しました') as String);
     }
-      return data['id'] as int;
-    }
-    /// テキスト検索
-  static Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
-    final uri = Uri.parse('$baseUrl/api/search')
-        .replace(queryParameters: {'q': keyword});
-    final http.Response res;
-    try {
-      res = await http.get(uri, headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-      });
-    } catch (_) {
-      throw ApiException('サーバーに接続できませんでした');
-    }
-    final dynamic data;
-    try {
-      data = jsonDecode(utf8.decode(res.bodyBytes));
-    } catch (_) {
-      throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
-    }
-    if (res.statusCode != 200) {
-      throw ApiException(
-          ((data as Map)['error'] ?? '検索に失敗しました') as String);
-    }
-    return (data as List).cast<Map<String, dynamic>>();
+
+    return data['id'] as int;
   }
 }
 
