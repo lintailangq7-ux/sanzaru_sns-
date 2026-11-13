@@ -253,6 +253,9 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- メイン(スクロールで流れる部分) ----------
   Widget _buildMain() {
+    // 文字入力中(履歴が開いている間)は、検索バーと履歴だけ表示する
+    final typing = _historyOpen && _hasText;
+
     return CustomScrollView(
       slivers: [
         // 検索バー：スクロールしても上に張り付く
@@ -263,46 +266,48 @@ class _SearchPageState extends State<SearchPage> {
             child: _buildSearchRow(),
           ),
         ),
-        // 画像検索 / 音声検索ボタン
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: _ModeRow(),
-          ),
-        ),
-        // 「検索画像候補」の見出し
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
-            child: Text(
-              Texts.candidateTitle,
-              style: TextStyle(fontWeight: FontWeight.bold),
+
+        if (!typing) ...[
+          // 画像検索 / 音声検索ボタン
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: _ModeRow(),
             ),
           ),
-        ),
-        // 検索画像候補(色付き四角形)
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: Sizes.candidateColumns,
-              mainAxisSpacing: Sizes.candidateSpacing,
-              crossAxisSpacing: Sizes.candidateSpacing,
-              childAspectRatio: Sizes.candidateAspect,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => ColorBox(
-                color: Palette.candidates[i],
-                radius: Sizes.candidateRadius,
+          // 「検索画像候補」の見出し
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
+              child: Text(
+                Texts.candidateTitle,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              childCount: Palette.candidates.length,
             ),
           ),
-        ),
+          // 検索画像候補(色付き四角形)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: Sizes.candidateColumns,
+                mainAxisSpacing: Sizes.candidateSpacing,
+                crossAxisSpacing: Sizes.candidateSpacing,
+                childAspectRatio: Sizes.candidateAspect,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => ColorBox(
+                  color: Palette.candidates[i],
+                  radius: Sizes.candidateRadius,
+                ),
+                childCount: Palette.candidates.length,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
-
   // ---------- 検索バー(戻る + 検索欄) ----------
   Widget _buildSearchRow() {
     return Container(
@@ -323,7 +328,6 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
-
   // ---------- 検索欄(虫めがね + 入力 + ▼) ----------
   Widget _buildSearchField() {
     return Container(
