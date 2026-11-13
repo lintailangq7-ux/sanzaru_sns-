@@ -106,7 +106,30 @@ class ApiClient {
     }
       return data['id'] as int;
     }
-  
+    /// テキスト検索
+  static Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
+    final uri = Uri.parse('$baseUrl/api/search')
+        .replace(queryParameters: {'q': keyword});
+    final http.Response res;
+    try {
+      res = await http.get(uri, headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+      });
+    } catch (_) {
+      throw ApiException('サーバーに接続できませんでした');
+    }
+    final dynamic data;
+    try {
+      data = jsonDecode(utf8.decode(res.bodyBytes));
+    } catch (_) {
+      throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
+    }
+    if (res.statusCode != 200) {
+      throw ApiException(
+          ((data as Map)['error'] ?? '検索に失敗しました') as String);
+    }
+    return (data as List).cast<Map<String, dynamic>>();
+  }
 }
 
 

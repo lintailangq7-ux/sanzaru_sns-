@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'post.dart';
-
+import 'search_result.dart'; // 追加
 void main() => runApp(const MyApp());
 
 // ============================================================
@@ -170,6 +170,19 @@ class _SearchPageState extends State<SearchPage> {
     _focusNode.dispose();
     super.dispose();
   }
+  // ---------- テキスト検索を実行 ----------
+  void _search() {
+    final keyword = _controller.text.trim();
+    if (keyword.isEmpty) return;
+    _focusNode.unfocus();
+    setState(() => _historyOpen = false);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchResultPage(keyword: keyword),
+      ),
+    );
+  }
 
   // ---------- 投稿作成画面へ移動 ----------
   Future<void> _openPostPage() async {
@@ -311,6 +324,10 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- 検索欄(虫めがね + 入力 + ▼) ----------
   Widget _buildSearchField() {
+    GestureDetector(
+      onTap: _search,
+      child: const _SearchIcon(size: Sizes.searchIcon),
+    ),
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
