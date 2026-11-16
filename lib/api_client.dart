@@ -201,28 +201,72 @@ static Future<bool> deletePost(int postId) async {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
-  /// テキスト検索 (SearchServlet)  SearchMode: テキスト=1 画像=2 音声=3
-  static Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
-    final uri = Uri.parse('$baseUrl/SearchServlet').replace(
-        queryParameters: {'SearchText': keyword, 'SearchMode': '1'});
-    final http.Response res;
-    try {
-      res = await http.get(uri, headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-      });
-    } catch (_) {
-      throw ApiException('サーバーに接続できませんでした');
-    }
-    final dynamic data;
-    try {
-      data = jsonDecode(utf8.decode(res.bodyBytes));
-    } catch (_) {
-      throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
-    }
-    if (res.statusCode != 200) {
-      throw ApiException(
-          ((data as Map)['error'] ?? '検索に失敗しました') as String);
-    }
-    return (data as List).cast<Map<String, dynamic>>();
+/// マイページ情報取得
+static Future<Map<String, dynamic>> fetchMyPage({int? userId}) async {
+  final uri = userId == null
+      ? Uri.parse('$baseUrl/api/mypage/')
+      : Uri.parse('$baseUrl/api/mypage/$userId');
+
+  final res = await http.get(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (res.statusCode != 200) {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? '情報の取得に失敗しました');
+  }
+
+  return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+}
+
+/// プロフィール編集
+static Future<Map<String, dynamic>> updateProfile({
+  required String displayName,
+  required String bio,
+}) async {
+  final uri = Uri.parse('$baseUrl/api/profile');
+  final res = await http.put(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: {
+      'displayName': displayName,
+      'bio': bio,
+    },
+  );
+
+  if (res.statusCode == 200) {
+    return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+  } else {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? '更新に失敗しました');
   }
 }
+
+/// アカウント削除
+static Future<void> deleteAccount() async {
+  final uri = Uri.parse('$baseUrl/api/mypage/');
+  final res = await http.delete(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (res.statusCode != 200) {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? 'アカウント削除に失敗しました');
+  }
+  
+  // 削除成功時：トークンをクリア
+  token = null;
+}
+}
+
+
+
