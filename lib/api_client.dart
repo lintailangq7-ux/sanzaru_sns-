@@ -135,6 +135,45 @@ class ApiClient {
 
     return data['id'] as int;
   }
+
+  /// 投稿編集
+static Future<bool> updatePost(int postId, String newBody) async {
+  final uri = Uri.parse('$baseUrl/api/posts/$postId');
+  final res = await http.put(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: {'body': newBody},
+  );
+
+  if (res.statusCode == 200) {
+    return true;
+  } else {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? '編集に失敗しました');
+  }
+}
+
+/// 投稿削除
+static Future<bool> deletePost(int postId) async {
+  final uri = Uri.parse('$baseUrl/api/posts/$postId');
+  final res = await http.delete(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (res.statusCode == 200) {
+    return true;
+  } else {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? '削除に失敗しました');
+  }
+}
+
 }
 
 
