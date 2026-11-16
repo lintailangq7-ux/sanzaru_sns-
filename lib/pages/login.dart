@@ -1,7 +1,7 @@
 import 'register.dart';
 import 'package:flutter/material.dart';
 import '../api_client.dart';
-import 'home_page.dart';       // ← ホーム画面のパスに合わせて
+import 'home_page.dart';       
 
 
 
