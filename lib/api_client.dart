@@ -174,6 +174,27 @@ static Future<bool> deletePost(int postId) async {
   }
 }
 
+/// マイページ情報取得
+static Future<Map<String, dynamic>> fetchMyPage({int? userId}) async {
+  final uri = userId == null
+      ? Uri.parse('$baseUrl/api/mypage/')
+      : Uri.parse('$baseUrl/api/mypage/$userId');
+
+  final res = await http.get(
+    uri,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (res.statusCode != 200) {
+    final data = jsonDecode(res.body);
+    throw ApiException(data['error'] ?? '情報の取得に失敗しました');
+  }
+
+  return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+}
+
 }
 
 
