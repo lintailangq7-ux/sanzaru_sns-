@@ -132,12 +132,12 @@ class ApiClient {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
-  /// 履歴を取得 (HistoryServlet)  mode: 閲覧=1 いいね=2 ブックマーク=3
+  /// 履歴を取得 (/api/history)  mode: 閲覧=1 いいね=2 ブックマーク=3
   static Future<List<Map<String, dynamic>>> fetchHistory({
     required int userId,
     required int mode,
   }) async {
-    final uri = Uri.parse('$baseUrl/HistoryServlet').replace(
+    final uri = Uri.parse('$baseUrl/api/history').replace(
         queryParameters: {'user_id': '$userId', 'HistoryMode': '$mode'});
     final http.Response res;
     try {
@@ -158,5 +158,6 @@ class ApiClient {
           ((data as Map)['error'] ?? '履歴の取得に失敗しました') as String);
     }
     return (data as List).cast<Map<String, dynamic>>();
+    
   }
 }
