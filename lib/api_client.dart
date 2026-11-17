@@ -43,14 +43,14 @@ class ApiClient {
   }
 
   //ログイン
-  static Future<Map<String, dynamic>> login(String username, String password) =>
-      _authenticate('/api/login', {'username': username, 'password': password}, 200);
+  static Future<Map<String, dynamic>> login(String email, String password) =>
+      _authenticate('/api/login', {'email': email, 'password': password}, 200);
 
   //新規登録
   static Future<Map<String, dynamic>> register(
-          String username, String displayName, String password) =>
+          String email, String displayName, String password) =>
       _authenticate('/api/register',
-          {'username': username, 'displayName': displayName, 'password': password}, 201);
+          {'email': email, 'displayName': displayName, 'password': password}, 201);
 
   /// 投稿一覧を取得
   static Future<List<Map<String, dynamic>>> fetchPosts() async {
