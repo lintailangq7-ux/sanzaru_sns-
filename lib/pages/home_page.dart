@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:srusns_frontend/Search.Dart' as search;
 import '../api_client.dart';
-import 'package:srusns_frontend/pages/post.dart';
+import 'post.dart';
+import '../Search.Dart' as search;
+
 
 
 
@@ -309,16 +310,19 @@ class _HomePageState extends State<HomePage> {
         currentIndex: selectedIndex,
         //メニューを押したときの処理
         onTap: (index) {
-          if(index == 2){
-            openPostPage();
-          }else{
-
-          
           setState(() {
-            selectedIndex = index;
+            selectedIndex = index;  // 先に更新
           });
+          if (index == 0) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+          } else if (index == 1) {
+            openSearchPage();  // 
+          } else if (index == 2) {
+            openPostPage();
+          } else if (index == 3) {
+            // マイページ：後で実装
           }
-},
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

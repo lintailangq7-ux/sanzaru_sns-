@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import  'post.dart';
+import 'post.dart';
 import 'search_result.dart';
+import 'Search.dart';
+import 'pages/home_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -207,11 +209,15 @@ class _SearchPageState extends State<SearchPage> {
   void _onNavTap(int index) {
     switch (index) {
       case NavIndex.post:
-        _openPostPage();
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));_openPostPage();
         break;
       // 他の画面ができたら、ここに移動の処理を足す
       case NavIndex.home:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+        break;
       case NavIndex.search:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SearchPage()));
+        break;
       case NavIndex.myPage:
         break;
     }
