@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
-
+import 'pages/home_page.dart';
+import 'package:srusns_frontend/Search.Dart' as search;
 class PostData{
   final String text;
   final String visibility;
   final List<XFile> images;
   final List<PlatformFile> audios;
+  final DateTime createdAt;
 
   PostData({
     required this.text,
     required this.visibility,
     required this.images,
     required this.audios,
+    required this.createdAt,
   });
 }
 
@@ -28,13 +31,26 @@ class PostPage extends StatefulWidget {
 
   @override
   State<PostPage> createState() => _PostPageState();
+ 
+
 
 }
   
   //公開範囲
   class _PostPageState extends State<PostPage>{
     String visibility = '全体に公開';
+
+  void openSearchPage() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const search.SearchPage(),
+    ),
+  );
+}
+
   
+
    // テキスト入力
   final TextEditingController postController =
       TextEditingController();
@@ -204,6 +220,7 @@ actions: [
         visibility: visibility,
         images: List<XFile>.from(selectedImages),
         audios: List<PlatformFile>.from(selectedAudios),
+        createdAt: DateTime.now(),
       );
 
       // 前の画面があれば投稿データを渡して戻る
@@ -521,9 +538,33 @@ Container(
 ],
  ),
 ),
+  // ★ 下部メニューを追加
+ bottomNavigationBar: BottomNavigationBar(
+  type: BottomNavigationBarType.fixed,
+  currentIndex: 2,
+  items: const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'ホーム',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.search),
+      label: '検索',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.add_box),
+      label: '投稿',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'マイページ',
+    ),
+  ],
+),
 );
 
 }
+
 
 @override
   void dispose() {
@@ -531,4 +572,4 @@ Container(
     audioPlayer.dispose();
     super.dispose();
 } 
-}    
+}

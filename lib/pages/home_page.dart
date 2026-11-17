@@ -5,6 +5,7 @@ import 'login.dart';
 import 'post.dart';
 
 
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
   
@@ -12,6 +13,7 @@ class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
 
 class _HomePageState extends State<HomePage> {
 
@@ -32,9 +34,12 @@ class _HomePageState extends State<HomePage> {
     ),
   );
 }
- //選択中のタブ
+ //選択中のタブ(おすすめ、フォロー中)
    int selectedTab = 0;
 
+//共通メニューの選択状態
+   int selectedIndex = 0;
+   
   // 投稿一覧
   List<PostData> posts = [];
 
@@ -93,6 +98,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         posts.insert(0, newPost);
       });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('投稿しました'),),);
     }
   }
 
@@ -109,10 +115,14 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
 
-      body: ListView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
+      body: IndexedStack(
+        index: selectedIndex,
         children: [
+          ListView(
+            children: [
+
+            
+          
         //タブボタン
         Row(children: [Expanded(child: ElevatedButton(onPressed:(){
           setState(() {
@@ -154,6 +164,8 @@ class _HomePageState extends State<HomePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
+            
+          
 
           const SizedBox(height: 16),
 
@@ -248,11 +260,13 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     }),
+     
                   ],
                 ),
               ),
             );
           }),
+
 
           // ★サーバーから取得した投稿
           if (_loading)
@@ -286,26 +300,37 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
             }),
+            
+            
+        ],
+      ),
+      search.SearchPage(),
+      PostPage(),
+      const Center(
+        child: Text('マイページ'),
+      ),
         ],
       ),
 
       // 下部メニュー
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: selectedIndex == 1
+      ? null
+      : BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
-
+        //現在選択しているメニュー
+        currentIndex: selectedIndex,
+        //メニューを押したときの処理
         onTap: (index) {
-          if(index == 1){
-            //検索画面へ
-            openSearchPage();
-          }else if (index == 2) {
-            //投稿作成画面へ
+          if(index == 2){
             openPostPage();
-          }else if (index == 3){
-            //マイページ画面へ
-          }
-        },
+          }else{
 
+          
+          setState(() {
+            selectedIndex = index;
+          });
+          }
+},
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -359,12 +384,13 @@ class PostActions extends StatefulWidget {
   final DateTime createdAt;
   final int initialLikeCount;
   final List<String> initialComments;
-
+  
   const PostActions({
     super.key,
     required this.createdAt,
     this.initialLikeCount = 0,
     this.initialComments = const [],
+    
   });
 
   @override

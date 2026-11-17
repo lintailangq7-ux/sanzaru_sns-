@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 
 
 
+
 class PostData{
   final String text;
   final String visibility;
@@ -183,34 +184,43 @@ Future<void> toggleAudio(int index) async {
         title: const Text('投稿作成',style: TextStyle(color:Colors.black),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          TextButton(
-            onPressed: (){
-            if(postController.text.trim().isEmpty &&
-            selectedImages.isEmpty &&
-            selectedAudios.isEmpty){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('投稿内容を入力してください'),
-              ),);
-              return;
-            }
-            //投稿データを作成
-            final newPost = PostData(
-              text: postController.text.trim(),
-              visibility: visibility, 
-              images: List<XFile>.from(selectedImages), 
-              audios: List<PlatformFile>.from(selectedAudios),
-            );
-            //ホーム画面に戻り、投稿データを渡す
-            Navigator.pop(context,newPost);
-          },
-          child: const Text('投稿',
-          style: TextStyle(
-            color:Colors.blue,
-            fontSize:16,
+       actions: [
+  TextButton(
+    onPressed: () {
+      // 投稿内容の入力チェック
+      if (postController.text.trim().isEmpty &&
+          selectedImages.isEmpty &&
+          selectedAudios.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('投稿内容を入力してください'),
           ),
-          ),
-          ),
-        ],
+        );
+        return;
+      }
+
+      // 投稿データを作成
+      final newPost = PostData(
+        text: postController.text.trim(),
+        visibility: visibility,
+        images: List<XFile>.from(selectedImages),
+        audios: List<PlatformFile>.from(selectedAudios),
+      );
+
+      
+
+      // ホーム画面へ遷移
+      Navigator.pop(context,newPost);
+    },
+    child: const Text(
+      '投稿',
+      style: TextStyle(
+        color: Colors.blue,
+        fontSize: 16,
+      ),
+    ),
+  ),
+],
 
       ),
         // 画面本体
