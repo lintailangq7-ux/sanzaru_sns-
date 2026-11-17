@@ -83,10 +83,10 @@ class ApiClient {
     req.fields['body'] = body;
     req.fields['visibility'] = visibility;
     if (imageBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('image', imageBytes, filename: imageName ?? 'image.jpg'));
+      req.files.add(http.MultipartFile.fromBytes('images', imageBytes, filename: imageName ?? 'image.jpg'));
     }
     if (audioBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('audio', audioBytes, filename: audioName ?? 'audio.wav'));
+      req.files.add(http.MultipartFile.fromBytes('audios', audioBytes, filename: audioName ?? 'audio.wav'));
     }
 
     final http.Response res;

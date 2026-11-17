@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'assets/images/icon.png',
+                        'assets/images/treeMonkey.png',
                           width: 205,
                           height: 130,
                           fit: BoxFit.cover,

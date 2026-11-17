@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:typed_data';
 import '../Search.Dart' as search;
 import 'home_page.dart';   
-
+import '../api_client.dart';
 
 
 
@@ -37,7 +38,15 @@ class PostPage extends StatefulWidget {
   
   //公開範囲
   class _PostPageState extends State<PostPage>{
-    String visibility = '全体に公開';
+    String visibility = 'public';
+    final Map<String, String> visibilityLabels = {
+      'public': '全体に公開',
+      'followers': 'フォロワーのみ',
+      'private': '自分のみ',
+    };
+
+  bool _isPosting = false;
+  String? _errorMessage;
   
    // テキスト入力
   final TextEditingController postController =
@@ -186,43 +195,77 @@ Future<void> toggleAudio(int index) async {
         title: const Text('投稿作成',style: TextStyle(color:Colors.black),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
-       actions: [
-  TextButton(
-    onPressed: () {
-      // 投稿内容の入力チェック
-      if (postController.text.trim().isEmpty &&
-          selectedImages.isEmpty &&
-          selectedAudios.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('投稿内容を入力してください'),
+        actions: [
+          TextButton(
+onPressed: _isPosting ? null : () async {
+  if(postController.text.trim().isEmpty &&
+      selectedImages.isEmpty &&
+      selectedAudios.isEmpty){
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('投稿内容を入力してください')),
+    );
+    return;
+  }
+
+  setState(() {
+    _isPosting = true;
+    _errorMessage = null;
+  });
+
+  try {
+    // 画像データを読み込み
+    Uint8List? imageBytes;
+    String? imageName;
+    if (selectedImages.isNotEmpty) {
+      imageBytes = await selectedImages.first.readAsBytes();
+      imageName = selectedImages.first.name;
+    }
+
+    // 音声データを読み込み
+    Uint8List? audioBytes;
+    String? audioName;
+    if (selectedAudios.isNotEmpty) {
+      audioBytes = await selectedAudios.first.readAsBytes();
+      audioName = selectedAudios.first.name;
+    }
+
+    // サーバーに送信
+    await ApiClient.createPost(
+      body: postController.text.trim(),
+      visibility: visibility,
+      imageBytes: imageBytes,
+      imageName: imageName,
+      audioBytes: audioBytes,
+      audioName: audioName,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context); // 成功したら戻る
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('投稿しました！')),
+    );
+  } on ApiException catch (e) {
+    setState(() => _errorMessage = e.message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message)),
+    );
+  } catch (e) {
+    setState(() => _errorMessage = '通信エラーが発生しました');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('通信エラーが発生しました')),
+    );
+  } finally {
+    if (mounted) setState(() => _isPosting = false);
+  }
+},
+          child: const Text('投稿',
+          style: TextStyle(
+            color:Colors.blue,
+            fontSize:16,
           ),
-        );
-        return;
-      }
-
-      // 投稿データを作成
-      final newPost = PostData(
-        text: postController.text.trim(),
-        visibility: visibility,
-        images: List<XFile>.from(selectedImages),
-        audios: List<PlatformFile>.from(selectedAudios),
-      );
-
-      
-
-      // ホーム画面へ遷移
-      Navigator.pop(context,newPost);
-    },
-    child: const Text(
-      '投稿',
-      style: TextStyle(
-        color: Colors.blue,
-        fontSize: 16,
-      ),
-    ),
-  ),
-],
+          ),
+          ),
+        ],
 
       ),
         // 画面本体
@@ -259,20 +302,12 @@ Future<void> toggleAudio(int index) async {
             // 公開範囲
             DropdownButton<String>(
               value: visibility,
-              items: const [
-                DropdownMenuItem(
-                  value: '全体に公開',
-                  child: Text('全体に公開'),
-                ),
-                DropdownMenuItem(
-                  value: 'フォロワーのみ',
-                  child: Text('フォロワーのみ'),
-                ),
-                DropdownMenuItem(
-                  value: '自分のみ',
-                  child: Text('自分のみ'),
-                ),
-              ],
+                            items: visibilityLabels.entries
+                  .map((e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ))
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
