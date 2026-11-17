@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'post.dart';
+import  'post.dart';
 import 'search_result.dart';
 
 void main() => runApp(const MyApp());

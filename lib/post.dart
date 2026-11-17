@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'pages/home_page.dart';
+import 'package:srusns_frontend/pages/home_page.dart';
 import 'package:srusns_frontend/Search.Dart' as search;
 class PostData{
   final String text;
@@ -223,19 +223,11 @@ actions: [
         createdAt: DateTime.now(),
       );
 
-      // 前の画面があれば投稿データを渡して戻る
-      if (widget.standalone){
-        // 直接投稿画面を起動した場合
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('投稿しました！'),
-          ),
-        );
-      } else {
+      
         //ホーム画面から開いた場合
         Navigator.pop(context,newPost);
-      }
-    },
+      },
+    
     child: const Text(
       '投稿',
       style: TextStyle(

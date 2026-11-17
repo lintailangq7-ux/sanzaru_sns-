@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:srusns_frontend/Search.Dart' as search;
 import '../api_client.dart';
-import 'post.dart';
+import 'package:srusns_frontend/pages/post.dart';
 
 
 
@@ -106,12 +106,6 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('さんさるトーク'),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search),
-          ),
-        ],
       ),
 
       body: IndexedStack(
@@ -156,13 +150,7 @@ class _HomePageState extends State<HomePage> {
 
         ],
         ),
-          const Text(
-            '投稿一覧',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          
             
           
 
