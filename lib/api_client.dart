@@ -58,16 +58,16 @@ class ApiClient {
       Uri.parse('$baseUrl/api/posts'),
       headers: {
         if (token != null) 'Authorization': 'Bearer $token',
-     },
+      },
     );
 
     if (res.statusCode != 200) {
-     throw ApiException('投稿の取得に失敗しました');
+      throw ApiException('投稿の取得に失敗しました');
     }
 
     final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
     return data.cast<Map<String, dynamic>>();
-  }        
+  }
 
   ///投稿を作成
   static Future<int> createPost({
@@ -84,7 +84,7 @@ class ApiClient {
     req.fields['visibility'] = visibility;
     if (imageBytes != null) {
       req.files.add(http.MultipartFile.fromBytes('image', imageBytes, filename: imageName ?? 'image.jpg'));
-   }
+    }
     if (audioBytes != null) {
       req.files.add(http.MultipartFile.fromBytes('audio', audioBytes, filename: audioName ?? 'audio.wav'));
     }
@@ -104,12 +104,13 @@ class ApiClient {
     if (res.statusCode != 201) {
       throw ApiException((data['error'] ?? '投稿に失敗しました') as String);
     }
-      return data['id'] as int;
-    }
-    /// テキスト検索
+    return data['id'] as int;
+  }
+
+  /// テキスト検索 (SearchServlet)  SearchMode: テキスト=1 画像=2 音声=3
   static Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
-    final uri = Uri.parse('$baseUrl/api/search')
-        .replace(queryParameters: {'q': keyword});
+    final uri = Uri.parse('$baseUrl/SearchServlet').replace(
+        queryParameters: {'SearchText': keyword, 'SearchMode': '1'});
     final http.Response res;
     try {
       res = await http.get(uri, headers: {
@@ -130,7 +131,33 @@ class ApiClient {
     }
     return (data as List).cast<Map<String, dynamic>>();
   }
+
+  /// 履歴を取得 (/api/history)  mode: 閲覧=1 いいね=2 ブックマーク=3
+  static Future<List<Map<String, dynamic>>> fetchHistory({
+    required int userId,
+    required int mode,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/history').replace(
+        queryParameters: {'user_id': '$userId', 'HistoryMode': '$mode'});
+    final http.Response res;
+    try {
+      res = await http.get(uri, headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+      });
+    } catch (_) {
+      throw ApiException('サーバーに接続できませんでした');
+    }
+    final dynamic data;
+    try {
+      data = jsonDecode(utf8.decode(res.bodyBytes));
+    } catch (_) {
+      throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
+    }
+    if (res.statusCode != 200) {
+      throw ApiException(
+          ((data as Map)['error'] ?? '履歴の取得に失敗しました') as String);
+    }
+    return (data as List).cast<Map<String, dynamic>>();
+    
+  }
 }
-
-
-

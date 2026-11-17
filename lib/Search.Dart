@@ -24,24 +24,33 @@ class Palette {
   static const Color line = Colors.black; // 枠線
   static const Color text = Colors.black; // 文字
   static const Color bg = Colors.white; // 背景
+  static const Color imageMissing = Color(0xFFE0E0E0); // 画像が読めないときの灰色
+}
 
-  // 画像検索ボタンの四角形の色
-  static const Color imageSearchBox = Color(0xFFE57373);
+// ============================================================
+// 【2-2】画像：使う画像はここだけ書き換えればOK
+//   (assets/images フォルダのファイル名。大文字小文字も同じにする)
+// ============================================================
+class Images {
+  static const String _dir = 'assets/images/';
 
-  // 履歴の「画像」行の四角形の色
-  static const Color historyImageBox = Color(0xFF64B5F6);
+  // 画像検索ボタンの画像
+  static const String imageSearchBox = '${_dir}Yama.png';
 
-  // 検索画像候補の四角形の色(9個。数を変えたら中身も増減する)
-  static const List<Color> candidates = [
-    Color(0xFFE57373), // 赤
-    Color(0xFFFFB74D), // オレンジ
-    Color(0xFFFFF176), // 黄
-    Color(0xFF81C784), // 緑
-    Color(0xFF4DB6AC), // 青緑
-    Color(0xFF64B5F6), // 青
-    Color(0xFF9575CD), // 紫
-    Color(0xFFF06292), // ピンク
-    Color(0xFFA1887F), // 茶
+  // 履歴の「画像」行の画像
+  static const String historyImageBox = '${_dir}MrDOG.png';
+
+  // 検索画像候補の画像(9個。数を変えたら中身も増減する)
+  static const List<String> candidates = [
+    '${_dir}food.jpg',
+    '${_dir}sports.jpg',
+    '${_dir}ryokou.jpg',
+    '${_dir}news.jpg',
+    '${_dir}game.jpg',
+    '${_dir}entame.jpg',
+    '${_dir}tpicJapan.jpg',
+    '${_dir}Yama.png',
+    '${_dir}PayPayDome.png',
   ];
 }
 
@@ -66,11 +75,11 @@ class Sizes {
   static const double historyLeft = mainLeft + backButtonWidth + gap + 48;
   static const double historyRight = gap + 48;
   static const double historyRowHeight = 34;
-  static const double historyImageWidth = 28; // 「画像」行の四角形
+  static const double historyImageWidth = 28; // 「画像」行の画像
   static const double historyImageHeight = 32;
 
   // 画像検索 / 音声検索ボタン
-  static const double modeIconWidth = 86; // 画像検索ボタンの四角形
+  static const double modeIconWidth = 86; // 画像検索ボタンの画像
   static const double modeIconHeight = 100;
   static const double modeButtonRadius = 32;
 
@@ -253,6 +262,9 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- メイン(スクロールで流れる部分) ----------
   Widget _buildMain() {
+    // 文字入力中(履歴が開いている間)は、検索バーと履歴だけ表示する
+    final typing = _historyOpen && _hasText;
+
     return CustomScrollView(
       slivers: [
         // 検索バー：スクロールしても上に張り付く
@@ -263,42 +275,45 @@ class _SearchPageState extends State<SearchPage> {
             child: _buildSearchRow(),
           ),
         ),
-        // 画像検索 / 音声検索ボタン
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: _ModeRow(),
-          ),
-        ),
-        // 「検索画像候補」の見出し
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
-            child: Text(
-              Texts.candidateTitle,
-              style: TextStyle(fontWeight: FontWeight.bold),
+
+        if (!typing) ...[
+          // 画像検索 / 音声検索ボタン
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: _ModeRow(),
             ),
           ),
-        ),
-        // 検索画像候補(色付き四角形)
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: Sizes.candidateColumns,
-              mainAxisSpacing: Sizes.candidateSpacing,
-              crossAxisSpacing: Sizes.candidateSpacing,
-              childAspectRatio: Sizes.candidateAspect,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => ColorBox(
-                color: Palette.candidates[i],
-                radius: Sizes.candidateRadius,
+          // 「検索画像候補」の見出し
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
+              child: Text(
+                Texts.candidateTitle,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              childCount: Palette.candidates.length,
             ),
           ),
-        ),
+          // 検索画像候補(画像)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: Sizes.candidateColumns,
+                mainAxisSpacing: Sizes.candidateSpacing,
+                crossAxisSpacing: Sizes.candidateSpacing,
+                childAspectRatio: Sizes.candidateAspect,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => ImageBox(
+                  path: Images.candidates[i],
+                  radius: Sizes.candidateRadius,
+                ),
+                childCount: Images.candidates.length,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -418,10 +433,10 @@ class _HistoryRow extends StatelessWidget {
           ],
         );
       case HistoryKind.image:
-        return const ColorBox(
+        return const ImageBox(
+          path: Images.historyImageBox,
           width: Sizes.historyImageWidth,
           height: Sizes.historyImageHeight,
-          color: Palette.historyImageBox,
         );
     }
   }
@@ -457,10 +472,10 @@ class _ModeRow extends StatelessWidget {
       children: [
         Expanded(
           child: _ModeButton(
-            icon: ColorBox(
+            icon: ImageBox(
+              path: Images.imageSearchBox,
               width: Sizes.modeIconWidth,
               height: Sizes.modeIconHeight,
-              color: Palette.imageSearchBox,
             ),
             label1: Texts.imageSearch1,
             label2: Texts.imageSearch2,
@@ -521,18 +536,17 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-/// 色付きの四角形(画像の代わり)
-/// 本物の画像にするときは、build の中身を
-///   Image.asset('assets/images/xxx.png', fit: BoxFit.cover)
-/// に差し替えるだけでよい(使っている場所はすべてこの部品を通る)
-class ColorBox extends StatelessWidget {
-  final Color color;
+/// 画像(assets/images のファイルを表示する)
+/// 画像が読めないときは灰色の四角形になる。
+/// 使っている場所はすべてこの部品を通る。
+class ImageBox extends StatelessWidget {
+  final String path; // 例: 'assets/images/food.jpg'
   final double? width; // 省略すると、置かれた場所いっぱいに広がる
   final double? height;
   final double radius;
-  const ColorBox({
+  const ImageBox({
     super.key,
-    required this.color,
+    required this.path,
     this.width,
     this.height,
     this.radius = 0,
@@ -540,12 +554,18 @@ class ColorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(radius),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.asset(
+        path,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => Container(
+          width: width,
+          height: height,
+          color: Palette.imageMissing,
+        ),
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:srusns_frontend/Search.Dart' as search;
 import '../api_client.dart';
-import 'login.dart';
 import 'post.dart';
 
 

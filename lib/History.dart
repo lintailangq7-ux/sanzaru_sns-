@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'api_client.dart'; // サーバーとの通信
 import 'post.dart'; // 投稿作成画面(PostPage / PostData)
 import 'search.dart' show SearchPage; // 検索画面
 
@@ -22,6 +23,11 @@ class Texts {
   // 仮の本文・画像の中の文字
   static const sampleBody = 'ここに投稿の文章が入ります。\n改行もできます。';
   static const imageLabel = '画像';
+
+  // 読み込みの表示
+  static const emptyText = '履歴がありません';
+  static const retry = '再読み込み';
+  static const sampleName = 'アカウント名'; // 仮(サーバーが投稿者名を返すようになったら差し替え)
 }
 
 // ============================================================
@@ -39,6 +45,7 @@ class Palette {
   static const Color box = Color(0xFF112233); // 画像・音声・注意書きの枠
   static const Color icon = Color(0xFF333333); // いいね・コメント・保存
   static const Color delete = Color(0xFFDD0000); // 削除ボタン
+  static const Color error = Color(0xFFDD0000); // 読み込み失敗の文字
 }
 
 // ============================================================
@@ -66,44 +73,55 @@ class Sizes {
 }
 
 // ============================================================
-// 【4】データ：投稿の中身はここだけ書き換えればOK
-//   hidden = この投稿で「見えなくする」もの
+// 【4】データ：サーバーから読み込んだ履歴1件分
+//   hidden = この投稿で「見えなくする」もの(今は全部見える。制限を付けるときに使う)
 //     none=全部見える / text=文が読めない / audio=音声が聞こえない / image=画像が見えない
 // ============================================================
 enum Hidden { none, text, audio, image }
 
 class PostItem {
+  final int postId; // 投稿ID
   final String name; // アカウント名
-  final String id; // アカウントID
-  final String date; // 投稿日時(「いいね」タブは、この新しい順に並ぶ)
+  final String id; // アカウントID(今は「投稿ID: ○」)
+  final String date; // 日時(閲覧した日時 / いいねした日時 / 保存した日時)
   final Hidden hidden;
-  const PostItem(this.name, this.id, this.date, this.hidden);
+  const PostItem(this.postId, this.name, this.id, this.date, this.hidden);
+
+  /// HistoryServlet のJSON { user_id, post_id, viewed_at } から作る
+  factory PostItem.fromJson(Map<String, dynamic> j) {
+    final postId = (j['post_id'] as num).toInt();
+    return PostItem(
+      postId,
+      Texts.sampleName,
+      '投稿ID: $postId',
+      _formatDate(j['viewed_at'] as String?),
+      Hidden.none,
+    );
+  }
 }
 
-const List<PostItem> posts = [
-  PostItem('アカウント名', 'アカウントID', '2026-10-27 09:00', Hidden.text),
-  PostItem('アカウント名', 'アカウントID', '2026-10-29 08:30', Hidden.audio),
-  PostItem('アカウント名', 'アカウントID', '2026-10-25 18:10', Hidden.image),
-  PostItem('アカウント名', 'アカウントID', '2026-10-29 07:45', Hidden.text),
-  PostItem('アカウント名', 'アカウントID', '2026-10-28 12:00', Hidden.image),
-  PostItem('アカウント名', 'アカウントID', '2026-10-26 21:15', Hidden.none),
-];
+/// "2026-11-11T11:02:34" → "2026-11-11 11:02"
+String _formatDate(String? raw) {
+  if (raw == null) return '';
+  final t = DateTime.tryParse(raw);
+  if (t == null) return raw;
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}:${two(t.minute)}';
+}
 
 // どのタブで何を見せるか
 class TabIndex {
   static const int viewed = 0; // 閲覧
-  static const int liked = 1; // いいね(日付の新しい順)
+  static const int liked = 1; // いいね
   static const int bookmarked = 2; // ブックマーク(削除ボタンつき)
+
+  /// サーバーの HistoryMode (閲覧=1 いいね=2 ブックマーク=3)
+  static int modeOf(int tab) => tab + 1;
 }
 
-/// タブごとの投稿の並びを返す
-List<PostItem> postsForTab(int tab) {
-  if (tab == TabIndex.liked) {
-    final sorted = List<PostItem>.from(posts);
-    sorted.sort((a, b) => b.date.compareTo(a.date)); // a と b を逆にすると古い順
-    return sorted;
-  }
-  return posts;
+// ★ 仮：ログインしていないときに使うユーザーID(動作確認用)
+class Dev {
+  static const int fallbackUserId = 1;
 }
 
 // ============================================================
@@ -161,6 +179,59 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   int _tab = TabIndex.viewed; // 今選ばれているタブ
+  List<PostItem> _items = []; // 読み込んだ履歴
+  bool _loading = true; // 読み込み中か
+  String? _error; // 読み込みに失敗したときのメッセージ
+  int _seq = 0; // タブを素早く切り替えたとき、古い結果を捨てるための番号
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  // ログイン中のユーザーID(ログインしていなければ仮のID)
+  int get _userId =>
+      (ApiClient.currentUser?['id'] as num?)?.toInt() ?? Dev.fallbackUserId;
+
+  // ---------- 今のタブの履歴をサーバーから読み込む ----------
+  Future<void> _load() async {
+    final seq = ++_seq;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final rows = await ApiClient.fetchHistory(
+        userId: _userId,
+        mode: TabIndex.modeOf(_tab),
+      );
+      if (!mounted || seq != _seq) return; // 別のタブに切り替わっていたら捨てる
+      setState(() {
+        _items = rows.map(PostItem.fromJson).toList();
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || seq != _seq) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted || seq != _seq) return;
+      setState(() {
+        _error = '履歴を読み込めませんでした';
+        _loading = false;
+      });
+    }
+  }
+
+  // ---------- タブを切り替えたとき ----------
+  void _onSelectTab(int i) {
+    if (i == _tab) return;
+    setState(() => _tab = i);
+    _load();
+  }
 
   // ---------- 投稿作成画面へ移動 ----------
   Future<void> _openPostPage() async {
@@ -194,12 +265,37 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
+  // ---------- 一覧の部分(読み込み中 / 失敗 / 0件 / 一覧) ----------
+  Widget _buildList() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, style: const TextStyle(color: Palette.error)),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: _load, child: const Text(Texts.retry)),
+          ],
+        ),
+      );
+    }
+    if (_items.isEmpty) {
+      return const Center(child: Text(Texts.emptyText));
+    }
+    final showDelete = _tab == TabIndex.bookmarked;
+    return ListView.builder(
+      itemCount: _items.length,
+      itemBuilder: (context, i) =>
+          _PostCard(item: _items[i], showDelete: showDelete),
+    );
+  }
+
   // ---------- 画面全体の組み立て ----------
   @override
   Widget build(BuildContext context) {
-    final items = postsForTab(_tab);
-    final showDelete = _tab == TabIndex.bookmarked;
-
     return Scaffold(
       body: SafeArea(
         // 投稿の列を、画面の上側・中央に置く
@@ -226,17 +322,11 @@ class _HistoryPageState extends State<HistoryPage> {
                     height: Sizes.tabHeight,
                     child: _TabRow(
                       selected: _tab,
-                      onSelect: (i) => setState(() => _tab = i),
+                      onSelect: _onSelectTab,
                     ),
                   ),
                   // 投稿の一覧(ここだけスクロール)
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, i) =>
-                          _PostCard(item: items[i], showDelete: showDelete),
-                    ),
-                  ),
+                  Expanded(child: _buildList()),
                 ],
               ),
             ),
