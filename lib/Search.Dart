@@ -114,8 +114,7 @@ const List<HistoryItem> historyItems = [
 class NavIndex {
   static const int home = 0;
   static const int search = 1;
-  static const int post = 2;
-  static const int myPage = 3;
+  static const int myPage = 2;
 
   static const int current = search; // この画面で選ばれている項目
 }
@@ -123,7 +122,6 @@ class NavIndex {
 const List<BottomNavigationBarItem> bottomNavItems = [
   BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
   BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
-  BottomNavigationBarItem(icon: Icon(Icons.add_box), label: '投稿'),
   BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
 ];
 
@@ -208,9 +206,7 @@ class _SearchPageState extends State<SearchPage> {
   // ---------- 下部メニューを押したとき ----------
   void _onNavTap(int index) {
     switch (index) {
-      case NavIndex.post:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));_openPostPage();
-        break;
+      
       // 他の画面ができたら、ここに移動の処理を足す
       case NavIndex.home:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));

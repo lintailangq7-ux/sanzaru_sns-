@@ -109,6 +109,24 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('さんさるトーク'),
       ),
+      
+      // 投稿作成ボタン（ホーム画面のみ表示）
+      floatingActionButton: selectedIndex == 0
+          ? FloatingActionButton(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              tooltip: '投稿作成',
+              onPressed: openPostPage,
+              child: const Icon(
+                Icons.add,
+                size: 30,
+              ),
+            )
+          : null,
+
+      // メニューバーの上に配置
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.endFloat,
 
       body: IndexedStack(
         index: selectedIndex,
@@ -294,7 +312,6 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       search.SearchPage(),
-      PostPage(),
       const Center(
         child: Text('マイページ'),
       ),
@@ -316,12 +333,11 @@ class _HomePageState extends State<HomePage> {
           if (index == 0) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
           } else if (index == 1) {
-            openSearchPage();  // 
+            openSearchPage();  // 検索
           } else if (index == 2) {
-            openPostPage();
-          } else if (index == 3) {
-            // マイページ：後で実装
-          }
+            //マイページ
+
+          } 
         },
         items: const [
           BottomNavigationBarItem(
@@ -331,10 +347,6 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
             label: '検索',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_box),
-            label: '投稿',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
