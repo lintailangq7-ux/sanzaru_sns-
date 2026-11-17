@@ -243,9 +243,7 @@ Widget build(BuildContext context) {
                                     ),
                                   );
                                 } else {
-                                  print('新規登録処理');
-                                  print(user.text);
-                                  print(email.text);
+
                                 }
                               },
                               style: ElevatedButton.styleFrom(
