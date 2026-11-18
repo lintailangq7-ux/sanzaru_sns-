@@ -112,16 +112,16 @@ const List<HistoryItem> historyItems = [
 
 // 下部メニュー(ホーム画面と同じ並び。順番を変えたら _onNavTap の番号も合わせる)
 class NavIndex {
-  static const int home = 0;
-  static const int search = 1;
+  static const int search = 0;
+  static const int home = 1;
   static const int myPage = 2;
 
   static const int current = search; // この画面で選ばれている項目
 }
 
 const List<BottomNavigationBarItem> bottomNavItems = [
-  BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
   BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
+  BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
   BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
 ];
 
@@ -208,11 +208,11 @@ class _SearchPageState extends State<SearchPage> {
     switch (index) {
       
       // 他の画面ができたら、ここに移動の処理を足す
+      case NavIndex.search:
+         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SearchPage()));
+        break;
       case NavIndex.home:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-        break;
-      case NavIndex.search:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SearchPage()));
         break;
       case NavIndex.myPage:
         break;
