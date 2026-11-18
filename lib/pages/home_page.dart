@@ -331,9 +331,10 @@ class _HomePageState extends State<HomePage> {
             selectedIndex = index;  // 先に更新
           });
           if (index == 0) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-          } else if (index == 1) {
             openSearchPage();  // 検索
+           
+          } else if (index == 1) {
+             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
           } else if (index == 2) {
             //マイページ
 
@@ -342,11 +343,11 @@ class _HomePageState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'ホーム',
+            label: '検索',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: '検索',
+            label: 'ホーム',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
