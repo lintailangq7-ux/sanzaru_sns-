@@ -1,10 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../api_client.dart'; // baseUrl・ApiClient・ApiException を使う
 
 // 単独で動かして確認するための入口(履歴画面と同じ作り)。
 // 本体アプリ(main.dart)から使うだけなら、この main は使われない。
 void main() => runApp(const CommentApp());
-
-
 
 class CommentApp extends StatelessWidget {
   const CommentApp({super.key});
@@ -15,20 +18,29 @@ class CommentApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: CommentTexts.pageTitle,
       theme: ThemeData(scaffoldBackgroundColor: CommentPalette.bg),
-      home: const CommentPage(),
+      home: const CommentPage(postId: CommentDev.demoPostId),
     );
   }
 }
+
+// ============================================================
+// 【0】開発用の仮設定(本番では使わない)
+// ============================================================
+class CommentDev {
+  static const int demoPostId = 1; // 単独起動のときに開く投稿のID
+  static const int fallbackUserId = 1; // ログインしていないときに使うユーザーID
+}
+
 // ============================================================
 // 【1】文字：画面に出す文字はここだけ書き換えればOK
 // ============================================================
 
 class CommentTexts {
-  static const demoText ='ここには文がありますが、あなたは読めません。';
-  static const demoUserName ='正木智也';
-  static const comenusiName='イッチ';
-  static const demoCommentUserName='コメント一男';
-  static const demoCommentUser='ここには音声がありますが、あなたは聞こえません';
+  static const demoText = 'ここには文がありますが、あなたは読めません。';
+  static const demoUserName = '正木智也';
+  static const comenusiName = 'イッチ';
+  static const demoCommentUserName = 'コメント一男';
+  static const demoCommentUser = 'ここには音声がありますが、あなたは聞こえません';
   static const pageTitle = 'コメント';
   static const sectionTitle = 'コメント';
   static const reply = '返信';
@@ -36,6 +48,8 @@ class CommentTexts {
   static const inputHint = 'コメント入力';
   static const sampleName = 'アカウント名'; // 仮(サーバーが名前を返すようになったら差し替え)
   static const imageLabel = '画像'; // 投稿画像の仮の文字
+  static const emptyText = 'まだコメントがありません';
+  static const retry = '再読み込み';
 }
 
 // ============================================================
@@ -58,18 +72,22 @@ class CommentPalette {
   static const Color divider = Color(0xFF1A5C8A); // 投稿とコメントの間の線
   static const Color commentBox = Color(0xFFDDE6F0); // コメント内容の枠
   static const Color sendButton = accent; // 送信ボタン
+  static const Color imageMissing = Color(0xFFE0E0E0); // 画像が読めないときの灰色
+  static const Color error = Color(0xFFDD0000); // 読み込み失敗の文字
 }
-class CommentImages {
-  static const String _dir='assets/images/';
 
-  //コメントする投稿の画像（仮） 
-  static const String imageImageBase='${_dir}yama.png';
+class CommentImages {
+  static const String _dir = 'assets/images/';
+
+  //コメントする投稿の画像（仮）
+  static const String imageImageBase = '${_dir}Yama.png';
 
   //アイコン画像
-  static const String imageAicon='${_dir}Man.png';
-  static const String imageUserAion ='${_dir}MrDOG.png';
-  static const String imageNothingMonkey ='${_dir}nothingMonkey.png';
+  static const String imageAicon = '${_dir}Man.png';
+  static const String imageUserAion = '${_dir}MrDOG.png';
+  static const String imageNothingMonkey = '${_dir}treeMonkey.png';
 }
+
 // ============================================================
 // 【3】サイズ：大きさ・すき間はここだけ書き換えればOK(History.dart と同じ値を含む)
 // ============================================================
@@ -95,40 +113,111 @@ class CommentSizes {
 
 // ============================================================
 // 【4】データ：コメント1件分
-//   サーバーが対応したら fromJson を作って差し替える
+//   サーバー(CommentServlet)のJSONから fromJson で作る
 // ============================================================
 class CommentItem {
+  final int id; // コメントID
   final String name; // アカウント名
   final String body; // コメント内容
   final String timeAgo; // 「1時間前」など
   final Color avatarColor; // アイコンの色(仮)
   bool liked; // ハートを押したか
   CommentItem({
+    this.id = 0,
     required this.name,
     required this.body,
     required this.timeAgo,
-    required this.avatarColor,
+    this.avatarColor = CommentPalette.avatarOther,
     this.liked = false,
   });
+
+  /// CommentServlet のJSON { id, userName, body, timeAgo, liked, ... } から作る
+  factory CommentItem.fromJson(Map<String, dynamic> j) {
+    return CommentItem(
+      id: (j['id'] as num).toInt(),
+      name: (j['userName'] ?? CommentTexts.sampleName) as String,
+      body: (j['body'] ?? '') as String,
+      timeAgo: (j['timeAgo'] ?? '') as String,
+      liked: (j['liked'] ?? false) as bool,
+    );
+  }
 }
+
 // ============================================================
-// 【5】下部メニュー(検索画面と同じもの)
-//   順番を変えたら _onNavTap の番号も合わせる
+// 【4-2】サーバーとの通信
+//   ※ api_client.dart を変えないため、コメントの通信はこの中に置いている
 // ============================================================
 
+/// 見ている人のID(ログインしていなければ仮のID)
+int get _viewerId =>
+    (ApiClient.currentUser?['id'] as num?)?.toInt() ??
+    CommentDev.fallbackUserId;
 
+/// コメント一覧を取得 (GET /CommentServlet)
+Future<List<CommentItem>> fetchComments(int postId) async {
+  final uri = Uri.parse('$baseUrl/CommentServlet').replace(
+      queryParameters: {'Post_id': '$postId', 'user_id': '$_viewerId'});
+  final http.Response res;
+  try {
+    res = await http.get(uri, headers: {
+      if (ApiClient.token != null) 'Authorization': 'Bearer ${ApiClient.token}',
+    });
+  } catch (_) {
+    throw ApiException('サーバーに接続できませんでした');
+  }
+  final dynamic data;
+  try {
+    data = jsonDecode(utf8.decode(res.bodyBytes));
+  } catch (_) {
+    throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
+  }
+  if (res.statusCode != 200) {
+    throw ApiException(
+        ((data as Map)['error'] ?? 'コメントの取得に失敗しました') as String);
+  }
+  return (data as List)
+      .cast<Map<String, dynamic>>()
+      .map(CommentItem.fromJson)
+      .toList();
+}
 
-
-
-
+/// コメントを送信 (POST /CommentServlet)
+Future<void> sendComment(int postId, String body) async {
+  final http.Response res;
+  try {
+    res = await http.post(
+      Uri.parse('$baseUrl/CommentServlet'),
+      headers: {
+        if (ApiClient.token != null)
+          'Authorization': 'Bearer ${ApiClient.token}',
+      },
+      body: {
+        'Post_id': '$postId',
+        'user_id': '$_viewerId',
+        'body': body,
+      }, // フォーム形式で送る
+    );
+  } catch (_) {
+    throw ApiException('サーバーに接続できませんでした');
+  }
+  if (res.statusCode != 201) {
+    String message = 'コメントを送信できませんでした';
+    try {
+      message = (jsonDecode(utf8.decode(res.bodyBytes)) as Map)['error']
+              as String? ??
+          message;
+    } catch (_) {}
+    throw ApiException(message);
+  }
+}
 
 // ============================================================
 // コメント画面
-//   postId を渡すと、どの投稿のコメントか分かる(今は仮データ)
+//   postId を渡すと、どの投稿のコメントか分かる
 // ============================================================
 class CommentPage extends StatefulWidget {
   final int postId;
-  const CommentPage({super.key, this.postId = 0});
+  const CommentPage({super.key, this.postId = CommentDev.demoPostId});
 
   @override
   State<CommentPage> createState() => _CommentPageState();
@@ -139,36 +228,16 @@ class _CommentPageState extends State<CommentPage> {
   bool _postLiked = true; // 投稿のハート(見本では押した状態)
   bool _postSaved = false; // 投稿の保存
 
-  // ★ 仮データ(サーバーにつなぐときはここを読み込みに置き換える)
-  final List<CommentItem> _comments = [
-    CommentItem(
-      name: CommentTexts.sampleName,
-      body: 'コメント内容',
-      timeAgo: '1時間前',
-      avatarColor: CommentPalette.avatarOther,
-    ),
-    CommentItem(
-      name: CommentTexts.demoUserName,
-      body: CommentTexts.demoText,
-      timeAgo: '3時間前',
-      avatarColor: CommentPalette.avatarOther2,
-      liked: true,  //いいねしているか（この文がある場合）
-    ),
-    CommentItem(
-      name: CommentTexts.sampleName,
-      body: 'コメント内容',
-      timeAgo: '3時間前',
-      avatarColor: CommentPalette.avatarOther2,
-      liked: true,
-    ),
-    CommentItem(
-      name: CommentTexts.demoCommentUserName,
-      body: CommentTexts.demoText,
-      timeAgo: '3時間前',
-      avatarColor: CommentPalette.avatarOther2,
-      liked: true,
-    ),
-  ];
+  List<CommentItem> _comments = []; // 読み込んだコメント
+  bool _loading = true; // 読み込み中か
+  bool _sending = false; // 送信中か
+  String? _error; // 読み込みに失敗したときのメッセージ
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
@@ -176,20 +245,50 @@ class _CommentPageState extends State<CommentPage> {
     super.dispose();
   }
 
-  // ---------- 送信ボタン ----------
-  void _send() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
+  // ---------- コメントをサーバーから読み込む ----------
+  Future<void> _load() async {
     setState(() {
-      _comments.add(CommentItem(
-        name: CommentTexts.sampleName,
-        body: text,
-        timeAgo: 'たった今',
-        avatarColor: CommentPalette.avatarMe,
-      ));
-      _controller.clear();
+      _loading = true;
+      _error = null;
     });
-    // ★ ここでサーバーにコメントを送る処理を足す
+    try {
+      final rows = await fetchComments(widget.postId);
+      if (!mounted) return;
+      setState(() {
+        _comments = rows;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'コメントを読み込めませんでした';
+        _loading = false;
+      });
+    }
+  }
+
+  // ---------- 送信ボタン ----------
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await sendComment(widget.postId, text);
+      _controller.clear();
+      await _load(); // 保存できたら読み込み直す
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   // ---------- 返信ボタン(入力欄に「@名前 」を入れる) ----------
@@ -199,6 +298,50 @@ class _CommentPageState extends State<CommentPage> {
         TextSelection.collapsed(offset: _controller.text.length);
   }
 
+  // ---------- コメント一覧の部分(読み込み中 / 失敗 / 0件 / 一覧) ----------
+  List<Widget> _commentWidgets() {
+    if (_loading) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+    if (_error != null) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              Text(_error!,
+                  style: const TextStyle(color: CommentPalette.error)),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                  onPressed: _load, child: const Text(CommentTexts.retry)),
+            ],
+          ),
+        ),
+      ];
+    }
+    if (_comments.isEmpty) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: Text(CommentTexts.emptyText)),
+        ),
+      ];
+    }
+    return [
+      for (final c in _comments)
+        _CommentTile(
+          item: c,
+          onLike: () => setState(() => c.liked = !c.liked),
+          onReply: () => _reply(c),
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,7 +349,8 @@ class _CommentPageState extends State<CommentPage> {
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: CommentSizes.columnWidth),
+            constraints:
+                const BoxConstraints(maxWidth: CommentSizes.columnWidth),
             child: Column(
               children: [
                 // 戻るボタンの行(固定)
@@ -231,12 +375,7 @@ class _CommentPageState extends State<CommentPage> {
                       const SizedBox(height: 8),
                       const Text(CommentTexts.sectionTitle),
                       const SizedBox(height: 12),
-                      for (final c in _comments)
-                        _CommentTile(
-                          item: c,
-                          onLike: () => setState(() => c.liked = !c.liked),
-                          onReply: () => _reply(c),
-                        ),
+                      ..._commentWidgets(),
                     ],
                   ),
                 ),
@@ -303,22 +442,21 @@ class _PosterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-     _Avatar(
-      imagePath: CommentImages.imageAicon,  //投稿主のアイコン
-      size: CommentSizes.posterAvatar,
-  ),
-   
-        const SizedBox(width: 16),
-        const Text(CommentTexts.comenusiName, //コメント主のアカウント名
+        _Avatar(
+          imagePath: CommentImages.imageAicon, //投稿主のアイコン
+          size: CommentSizes.posterAvatar,
+        ),
+        SizedBox(width: 16),
+        Text(CommentTexts.comenusiName, //コメント主のアカウント名
             style: TextStyle(fontSize: CommentSizes.headFont)),
       ],
     );
   }
 }
 
-/// 丸いアイコン
+/// 丸いアイコン(画像が読めないときは灰色の丸)
 class _Avatar extends StatelessWidget {
   final String imagePath;
   final double size;
@@ -336,12 +474,17 @@ class _Avatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => Container(
+          width: size,
+          height: size,
+          color: CommentPalette.imageMissing,
+        ),
       ),
     );
-   }
   }
+}
 
-/// 投稿の画像枠(本物の画像にするときは中の Text を Image に差し替える)
+/// 投稿の画像枠(画像が読めないときは灰色)
 class _PostImage extends StatelessWidget {
   const _PostImage();
 
@@ -349,20 +492,19 @@ class _PostImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: CommentSizes.imageAspect,
-      child: 
-      Container(
+      child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
           border: Border.all(
-            color: CommentPalette.line, 
-            width: CommentSizes.boxBorder
-            ),
+              color: CommentPalette.line, width: CommentSizes.boxBorder),
         ),
         child: Image.asset(
           CommentImages.imageImageBase, //投稿主の画像
           width: double.infinity,
           height: double.infinity,
           fit: BoxFit.cover,
+          errorBuilder: (context, error, stack) =>
+              Container(color: CommentPalette.imageMissing),
         ),
       ),
     );
@@ -403,9 +545,9 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Avatar(
-            imagePath: CommentImages.imageNothingMonkey,  //コメント投稿者のアイコン
-            ),
+          const _Avatar(
+            imagePath: CommentImages.imageNothingMonkey, //コメント投稿者のアイコン
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -428,7 +570,8 @@ class _CommentTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(item.timeAgo,
-                        style: const TextStyle(fontSize: CommentSizes.headFont)),
+                        style:
+                            const TextStyle(fontSize: CommentSizes.headFont)),
                     const SizedBox(width: 16),
                     InkWell(
                       onTap: onReply,
@@ -467,10 +610,10 @@ class _InputRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-      const _Avatar(
-
-        imagePath: CommentImages.imageUserAion, //閲覧している自分のアイコン（コメントを投稿する人のアイコン）
-      ),
+          const _Avatar(
+            imagePath: CommentImages
+                .imageUserAion, //閲覧している自分のアイコン（コメントを投稿する人のアイコン）
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
