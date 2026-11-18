@@ -29,6 +29,8 @@ class CommentApp extends StatelessWidget {
 class CommentDev {
   static const int demoPostId = 1; // 単独起動のときに開く投稿のID
   static const int fallbackUserId = 1; // ログインしていないときに使うユーザーID
+  static const String mail = 'saru01@example.com'; // 確認用のログイン(本番では使わない)
+  static const String password = 'password123';
 }
 
 // ============================================================
@@ -147,20 +149,30 @@ class CommentItem {
 // 【4-2】サーバーとの通信
 //   ※ api_client.dart を変えないため、コメントの通信はこの中に置いている
 // ============================================================
-
 /// 見ている人のID(ログインしていなければ仮のID)
 int get _viewerId =>
     (ApiClient.currentUser?['id'] as num?)?.toInt() ??
     CommentDev.fallbackUserId;
 
-/// コメント一覧を取得 (GET /CommentServlet)
+/// ★ 確認用：トークンが無ければ、ここでログインする
+Future<void> _ensureLogin() async {
+  if (ApiClient.token != null) return;
+  try {
+    await ApiClient.login(CommentDev.mail, CommentDev.password);
+  } catch (e) {
+    throw ApiException('ログインに失敗しました: $e');
+  }
+}
+
+/// コメント一覧を取得 (GET /api/comment)
 Future<List<CommentItem>> fetchComments(int postId) async {
-  final uri = Uri.parse('$baseUrl/CommentServlet').replace(
+  await _ensureLogin();
+  final uri = Uri.parse('$baseUrl/api/comment').replace(
       queryParameters: {'Post_id': '$postId', 'user_id': '$_viewerId'});
   final http.Response res;
   try {
     res = await http.get(uri, headers: {
-      if (ApiClient.token != null) 'Authorization': 'Bearer ${ApiClient.token}',
+      'Authorization': 'Bearer ${ApiClient.token}',
     });
   } catch (_) {
     throw ApiException('サーバーに接続できませんでした');
@@ -181,16 +193,14 @@ Future<List<CommentItem>> fetchComments(int postId) async {
       .toList();
 }
 
-/// コメントを送信 (POST /CommentServlet)
+/// コメントを送信 (POST /api/comment)
 Future<void> sendComment(int postId, String body) async {
+  await _ensureLogin();
   final http.Response res;
   try {
     res = await http.post(
-      Uri.parse('$baseUrl/CommentServlet'),
-      headers: {
-        if (ApiClient.token != null)
-          'Authorization': 'Bearer ${ApiClient.token}',
-      },
+      Uri.parse('$baseUrl/api/comment'),
+      headers: {'Authorization': 'Bearer ${ApiClient.token}'},
       body: {
         'Post_id': '$postId',
         'user_id': '$_viewerId',
@@ -210,7 +220,6 @@ Future<void> sendComment(int postId, String body) async {
     throw ApiException(message);
   }
 }
-
 // ============================================================
 // コメント画面
 //   postId を渡すと、どの投稿のコメントか分かる
