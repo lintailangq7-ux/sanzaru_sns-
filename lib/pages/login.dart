@@ -173,7 +173,6 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                               } on ApiException catch (e) {
                                 if (!mounted) return;
-                                  Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(e.message)),
                                   );
