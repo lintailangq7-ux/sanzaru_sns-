@@ -251,12 +251,11 @@ class _SearchPageState extends State<SearchPage> {
     switch (index) {
       // 他の画面ができたら、ここに移動の処理を足す
       case NavIndex.search:
-<<<<<<< HEAD
+
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const SearchPage()));
-=======
         //検索画面なので何もしない
->>>>>>> 6e2f75a7372f726c70548160ebc6f3c3219d1cce
+
         break;
       case NavIndex.home:
         Navigator.pushReplacement(

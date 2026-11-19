@@ -54,20 +54,26 @@ class ApiClient {
 
   /// 投稿一覧を取得
   static Future<List<Map<String, dynamic>>> fetchPosts() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/posts'),
-      headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+  final res = await http.get(
+    Uri.parse('$baseUrl/api/posts'),
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
 
-    if (res.statusCode != 200) {
-      throw ApiException('投稿の取得に失敗しました');
-    }
+  // ✅ デバッグ用：ステータスコードと内容を出力
+  print('=== ステータスコード: ${res.statusCode}');
+  print('=== レスポンス本文: ${res.body}');
 
-    final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-    return data.cast<Map<String, dynamic>>();
+  if (res.statusCode != 200) {
+    throw ApiException('投稿の取得に失敗しました (${res.statusCode})');
   }
+
+  // ↓ ここも修正：JSONの形が { "posts": [...] } になっているので！
+  final Map<String, dynamic> responseData = jsonDecode(utf8.decode(res.bodyBytes));
+  final List<dynamic> data = responseData['posts'] as List<dynamic>;
+  return data.cast<Map<String, dynamic>>();
+}
 
   ///投稿を作成
   static Future<int> createPost({
