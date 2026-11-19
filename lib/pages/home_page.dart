@@ -412,10 +412,10 @@ print('=== mediaListの長さ: ${mediaLists?.length ?? 0}');
           if (index == 0) {
             openSearchPage();  // 検索
            
-          } else if (index == 1) {
+          } else if (index == 1) {//ホーム画面
           
           } else if (index == 2) {
-            //マイページ(仮) 
+            //マイページ、遷移はホーム画面が表示される、後ほど変更する
            
 
           }
