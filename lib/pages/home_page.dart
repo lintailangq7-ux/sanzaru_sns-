@@ -35,11 +35,13 @@ class _HomePageState extends State<HomePage> {
     ),
   );
 }
+//マイページへ遷移
+
  //選択中のタブ(おすすめ、フォロー中)
    int selectedTab = 0;
 
 //共通メニューの選択状態
-   int selectedIndex = 0;
+   int selectedIndex = 1;
    
   // 投稿一覧
   List<PostData> posts = [];
@@ -111,7 +113,7 @@ class _HomePageState extends State<HomePage> {
       ),
       
       // 投稿作成ボタン（ホーム画面のみ表示）
-      floatingActionButton: selectedIndex == 0
+      floatingActionButton: selectedIndex == 1
           ? FloatingActionButton(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
@@ -128,9 +130,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButtonLocation:
           FloatingActionButtonLocation.endFloat,
 
-      body: IndexedStack(
-        index: selectedIndex,
-        children: [
+      body: 
           ListView(
             children: [
 
@@ -295,33 +295,112 @@ class _HomePageState extends State<HomePage> {
           else if (serverPosts.isEmpty)
             const Center(child: Text('まだ投稿がありません'))
           else
-            ...serverPosts.map((post) {
-              final user = post['user'] as Map<String, dynamic>? ?? {};
-              final name = user['displayName'] ?? user['username'] ?? '不明';
-              final content = post['content'] ?? post['text'] ?? '';
-              return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text(name.toString()),
-                  subtitle: Text(content.toString()),
+  ...serverPosts.map((post) {
+    final mediaList = (post['media'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final images = mediaList.where((m) => m['type'] == 'image').toList();
+    final audios = mediaList.where((m) => m['type'] == 'audio').toList();
+    final userName = post['authorName']?.toString() ?? '不明';
+    final content = post['content']?.toString() ?? post['text']?.toString() ?? '';
+    final createdAt = DateTime.fromMillisecondsSinceEpoch((post['createdAt'] as int?) ?? 0);
+    // 投稿データを受け取ったら
+print('=== 投稿全体: $post');
+print('=== mediaフィールド: ${post['media']}');
+
+final mediaLists = post['media'] as List?;
+print('=== mediaListの中身: $mediaLists');
+print('=== mediaListの長さ: ${mediaLists?.length ?? 0}');
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ユーザー名
+            Row(
+              children: [
+                const CircleAvatar(child: Icon(Icons.person)),
+                const SizedBox(width: 10),
+                Text(
+                  userName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // 本文
+            if (content.isNotEmpty) Text(content),
+            const SizedBox(height: 10),
+
+            // ✅ 画像表示
+            if (images.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: images.map((img) {
+                  final fileName = img['fileName'] as String;
+                  final imageUrl = '$baseUrl/media/images/$fileName';
+                  print('🖼️ 画像URL: $imageUrl'); // ✅ この行を追加！
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const SizedBox(
+                          width: 100, height: 100,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(
+                          width: 100, height: 100,
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            if (images.isNotEmpty) const SizedBox(height: 10),
+
+            // ✅ 音声表示
+            ...audios.map((audio) {
+              final fileName = audio['fileName'] as String;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.audio_file, color: Colors.blue),
+                title: Text(fileName, overflow: TextOverflow.ellipsis),
+                dense: true,
               );
             }),
+
+            // 投稿日時 + いいね・コメント
+            const SizedBox(height: 8),
+            PostActions(
+              createdAt: createdAt,
+              initialLikeCount: (post['likeCount'] as int?) ?? 0,
+            ),
+          ],
+        ),
+      ),
+    );
+  }),
+
             
             
         ],
       ),
-      search.SearchPage(),
-      const Center(
-        child: Text('マイページ'),
-      ),
-        ],
-      ),
+      
+      
 
       // 下部メニュー
-      bottomNavigationBar: selectedIndex == 1
-      ? null
-      : BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         //現在選択しているメニュー
         currentIndex: selectedIndex,
@@ -334,19 +413,20 @@ class _HomePageState extends State<HomePage> {
             openSearchPage();  // 検索
            
           } else if (index == 1) {
-             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+          
           } else if (index == 2) {
-            //マイページ
+            //マイページ(仮) 
+           
 
-          } 
+          }
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.search),
             label: '検索',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
+            icon: Icon(Icons.home),
             label: 'ホーム',
           ),
           BottomNavigationBarItem(
