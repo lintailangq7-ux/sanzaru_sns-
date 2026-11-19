@@ -223,13 +223,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   const SizedBox(height: 10),
 
-                  const Text(
-                    '新規登録',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                   
                   
                   // 見出し

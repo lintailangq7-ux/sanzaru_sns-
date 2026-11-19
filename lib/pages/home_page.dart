@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'post.dart';
 import '../Search.Dart' as search;
 
@@ -85,25 +86,17 @@ class _HomePageState extends State<HomePage> {
   }
   // ★ここまで追加
 
-  // 投稿画面へ移動して、投稿内容を受け取る
+  // 最新投稿内容を受け取る
   Future<void> openPostPage() async {
-    final newPost = await Navigator.push<PostData>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PostPage(),
-      ),
-    );
-
-    if (!mounted) return;
-
-    // 投稿内容をホーム画面に追加
-    if (newPost != null) {
-      setState(() {
-        posts.insert(0, newPost);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('投稿しました'),),);
-    }
-  }
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const PostPage(),
+    ),
+  );
+  // ✅ 投稿後に最新の一覧を再取得
+  _loadPosts();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -372,11 +365,11 @@ print('=== mediaListの長さ: ${mediaLists?.length ?? 0}');
             // ✅ 音声表示
             ...audios.map((audio) {
               final fileName = audio['fileName'] as String;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.audio_file, color: Colors.blue),
-                title: Text(fileName, overflow: TextOverflow.ellipsis),
-                dense: true,
+              final audioUrl = '$baseUrl/media/audio/$fileName';
+              
+              return _AudioPlayerTile(
+                fileName: fileName,
+                audioUrl: audioUrl,
               );
             }),
 
@@ -618,5 +611,94 @@ class _PostActionsState extends State<PostActions> {
       ],
     );
   }
+
+  
 }
+
+// ✅ 音声再生用ウィジェット
+class _AudioPlayerTile extends StatefulWidget {
+  final String fileName;
+  final String audioUrl;
+
+  const _AudioPlayerTile({
+    required this.fileName,
+    required this.audioUrl,
+  });
+
+  @override
+  State<_AudioPlayerTile> createState() => _AudioPlayerTileState();
+}
+
+class _AudioPlayerTileState extends State<_AudioPlayerTile> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await _audioPlayer.stop();
+      setState(() => _isPlaying = false);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _audioPlayer.setSource(UrlSource(widget.audioUrl));
+      await _audioPlayer.resume();
+      setState(() {
+        _isPlaying = true;
+        _isLoading = false;
+      });
+
+      _audioPlayer.onPlayerComplete.listen((_) {
+        if (mounted) {
+          setState(() => _isPlaying = false);
+        }
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('音声の再生に失敗しました: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: IconButton(
+        icon: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                color: Colors.blue,
+                size: 32,
+              ),
+        onPressed: _isLoading ? null : _togglePlay,
+      ),
+      title: Text(
+        widget.fileName,
+        overflow: TextOverflow.ellipsis,
+      ),
+      dense: true,
+    );
+  }
+}
+
 
