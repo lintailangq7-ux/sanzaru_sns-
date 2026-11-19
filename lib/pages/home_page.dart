@@ -35,11 +35,13 @@ class _HomePageState extends State<HomePage> {
     ),
   );
 }
+//マイページへ遷移
+
  //選択中のタブ(おすすめ、フォロー中)
    int selectedTab = 0;
 
 //共通メニューの選択状態
-   int selectedIndex = 0;
+   int selectedIndex = 1;
    
   // 投稿一覧
   List<PostData> posts = [];
@@ -111,7 +113,7 @@ class _HomePageState extends State<HomePage> {
       ),
       
       // 投稿作成ボタン（ホーム画面のみ表示）
-      floatingActionButton: selectedIndex == 0
+      floatingActionButton: selectedIndex == 1
           ? FloatingActionButton(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
@@ -128,9 +130,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButtonLocation:
           FloatingActionButtonLocation.endFloat,
 
-      body: IndexedStack(
-        index: selectedIndex,
-        children: [
+      body: 
           ListView(
             children: [
 
@@ -311,17 +311,11 @@ class _HomePageState extends State<HomePage> {
             
         ],
       ),
-      search.SearchPage(),
-      const Center(
-        child: Text('マイページ'),
-      ),
-        ],
-      ),
+      
+      
 
       // 下部メニュー
-      bottomNavigationBar: selectedIndex == 1
-      ? null
-      : BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         //現在選択しているメニュー
         currentIndex: selectedIndex,
@@ -334,19 +328,20 @@ class _HomePageState extends State<HomePage> {
             openSearchPage();  // 検索
            
           } else if (index == 1) {
-             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+          
           } else if (index == 2) {
-            //マイページ
+            //マイページ(仮) 
+           
 
-          } 
+          }
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.search),
             label: '検索',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
+            icon: Icon(Icons.home),
             label: 'ホーム',
           ),
           BottomNavigationBarItem(
