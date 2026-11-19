@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // 画像を選ぶ
+import 'package:file_picker/file_picker.dart'; // 音声を選ぶ
 import 'post.dart';
 import 'search_result.dart';
-import 'Search.dart';
 import 'pages/home_page.dart';
 
 void main() => runApp(const MyApp());
@@ -163,6 +164,9 @@ class _SearchPageState extends State<SearchPage> {
   final FocusNode _focusNode = FocusNode();
   bool _historyOpen = false;
 
+  XFile? _selectedImage; // 選んだ画像(画像検索用)
+  PlatformFile? _selectedAudio; // 選んだ音声(音声検索用)
+
   bool get _hasText => _controller.text.isNotEmpty;
 
   @override
@@ -195,6 +199,45 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  // ---------- 画像検索：画像を選ぶ(post.dart の addImage と同じ方法) ----------
+  Future<void> _pickImage() async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image == null) return; // キャンセルしたときは何もしない
+    setState(() => _selectedImage = image);
+    _showMessage('画像を選びました: ${image.name}');
+    _searchByImage();
+  }
+
+  // ---------- 音声検索：音声ファイルを選ぶ(post.dart の addAudio と同じ方法) ----------
+  Future<void> _pickAudio() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.audio,
+    );
+    if (files.isEmpty) return; // キャンセルしたときは何もしない
+    setState(() => _selectedAudio = files.first);
+    _showMessage('音声を選びました: ${files.first.name}');
+    _searchByVoice();
+  }
+
+  // ---------- 画像検索の実行(これから実装) ----------
+  void _searchByImage() {
+    // ★ ここで _selectedImage をサーバーに送って検索する
+    //   (読み込みは post.dart と同じ: await _selectedImage!.readAsBytes())
+  }
+
+  // ---------- 音声検索の実行(これから実装) ----------
+  void _searchByVoice() {
+    // ★ ここで _selectedAudio をサーバーに送って検索する
+    //   (読み込みは post.dart と同じ: await _selectedAudio!.readAsBytes())
+  }
+
+  // ---------- 画面の下にメッセージを出す(見た目は変えない) ----------
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
   // ---------- 投稿作成画面へ移動 ----------
   Future<void> _openPostPage() async {
     await Navigator.push<PostData>(
@@ -206,13 +249,18 @@ class _SearchPageState extends State<SearchPage> {
   // ---------- 下部メニューを押したとき ----------
   void _onNavTap(int index) {
     switch (index) {
-      
       // 他の画面ができたら、ここに移動の処理を足す
       case NavIndex.search:
+<<<<<<< HEAD
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const SearchPage()));
+=======
         //検索画面なので何もしない
+>>>>>>> 6e2f75a7372f726c70548160ebc6f3c3219d1cce
         break;
       case NavIndex.home:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const HomePage()));
         break;
       case NavIndex.myPage:
       //マイページの遷移処理
@@ -281,10 +329,13 @@ class _SearchPageState extends State<SearchPage> {
 
         if (!typing) ...[
           // 画像検索 / 音声検索ボタン
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: _ModeRow(),
+              padding: const EdgeInsets.only(top: 4),
+              child: _ModeRow(
+                onImageTap: _pickImage, // 画像検索ボタン → 画像を選ぶ
+                onVoiceTap: _pickAudio, // 音声検索ボタン → 音声を選ぶ
+              ),
             ),
           ),
           // 「検索画像候補」の見出し
@@ -467,29 +518,33 @@ class _HistoryRow extends StatelessWidget {
 
 /// 画像検索 / 音声検索ボタンの行
 class _ModeRow extends StatelessWidget {
-  const _ModeRow();
+  final VoidCallback onImageTap; // 画像検索ボタンを押したとき
+  final VoidCallback onVoiceTap; // 音声検索ボタンを押したとき
+  const _ModeRow({required this.onImageTap, required this.onVoiceTap});
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: _ModeButton(
-            icon: ImageBox(
+            icon: const ImageBox(
               path: Images.imageSearchBox,
               width: Sizes.modeIconWidth,
               height: Sizes.modeIconHeight,
             ),
             label1: Texts.imageSearch1,
             label2: Texts.imageSearch2,
+            onTap: onImageTap,
           ),
         ),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Expanded(
           child: _ModeButton(
-            icon: _MicIcon(width: 80, height: 100, stroke: 7),
+            icon: const _MicIcon(width: 80, height: 100, stroke: 7),
             label1: Texts.voiceSearch1,
             label2: Texts.voiceSearch2,
+            onTap: onVoiceTap,
           ),
         ),
       ],
@@ -497,21 +552,23 @@ class _ModeRow extends StatelessWidget {
   }
 }
 
-/// 画像検索 / 音声検索ボタン1つ(見かけだけ)
+/// 画像検索 / 音声検索ボタン1つ
 class _ModeButton extends StatelessWidget {
   final Widget icon;
   final String label1;
   final String label2;
+  final VoidCallback onTap; // 押したときの処理
   const _ModeButton({
     required this.icon,
     required this.label1,
     required this.label2,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(Sizes.modeButtonRadius),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
