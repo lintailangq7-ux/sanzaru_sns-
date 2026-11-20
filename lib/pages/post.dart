@@ -24,7 +24,69 @@ class PostData{
 }
 
 
+class PostMedia {
+  final String type;
+  final String fileName;
 
+  PostMedia({required this.type, required this.fileName});
+
+  factory PostMedia.fromJson(Map<String, dynamic> json) {
+    return PostMedia(
+      type: json['type'] as String,
+      fileName: json['fileName'] as String,
+    );
+  }
+}
+
+class Post {
+  final int id;
+  final int userId;
+  final String? content;
+  final String? text;
+  final DateTime createdAt;
+  final String authorName;
+  final String authorMail;
+  final String authorType; // "mizaru" / "iwazaru" / "kikazaru"
+  final int likeCount;
+  final bool liked;
+  final int replyCount;
+  final List<PostMedia> media;
+
+  Post({
+    required this.id,
+    required this.userId,
+    this.content,
+    this.text,
+    required this.createdAt,
+    required this.authorName,
+    required this.authorMail,
+    required this.authorType,
+    required this.likeCount,
+    required this.liked,
+    required this.replyCount,
+    required this.media,
+  });
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    var mediaList = (json['media'] as List)
+        .map((m) => PostMedia.fromJson(m as Map<String, dynamic>))
+        .toList();
+    return Post(
+      id: json['id'] as int,
+      userId: json['userId'] as int,
+      content: json['content'] as String?,
+      text: json['text'] as String?,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int),
+      authorName: json['authorName'] as String,
+      authorMail: json['authorMail'] as String,
+      authorType: json['authorType'] as String? ?? 'unknown',
+      likeCount: json['likeCount'] as int,
+      liked: json['liked'] as bool,
+      replyCount: json['replyCount'] as int,
+      media: mediaList,
+    );
+  }
+}
 class PostPage extends StatefulWidget {
   const PostPage({super.key});
   
@@ -63,6 +125,9 @@ final AudioPlayer audioPlayer = AudioPlayer();
 
 int? playingAudioIndex;
 bool isPlaying = false;
+
+
+
  // ハッシュタグ追加
   void addHashtag() {
     final hashtagController = TextEditingController();

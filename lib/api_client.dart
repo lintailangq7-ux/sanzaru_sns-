@@ -53,9 +53,12 @@ class ApiClient {
           {'email': email, 'displayName': displayName, 'password': password}, 201);
 
   /// 投稿一覧を取得
-  static Future<List<Map<String, dynamic>>> fetchPosts() async {
+  static Future<List<Map<String, dynamic>>> fetchPosts({bool homeOnly = false}) async {
+final uri = Uri.parse('$baseUrl/api/posts').replace(
+    queryParameters: {'homeOnly': homeOnly.toString()},
+  );
   final res = await http.get(
-    Uri.parse('$baseUrl/api/posts'),
+    uri,
     headers: {
       if (token != null) 'Authorization': 'Bearer $token',
     },

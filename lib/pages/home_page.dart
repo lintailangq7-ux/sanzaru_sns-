@@ -295,13 +295,20 @@ class _HomePageState extends State<HomePage> {
     final userName = post['authorName']?.toString() ?? '不明';
     final content = post['content']?.toString() ?? post['text']?.toString() ?? '';
     final createdAt = DateTime.fromMillisecondsSinceEpoch((post['createdAt'] as int?) ?? 0);
-    // 投稿データを受け取ったら
-print('=== 投稿全体: $post');
-print('=== mediaフィールド: ${post['media']}');
+    
+    final myUserId = 1; 
 
-final mediaLists = post['media'] as List?;
-print('=== mediaListの中身: $mediaLists');
-print('=== mediaListの長さ: ${mediaLists?.length ?? 0}');
+    // 投稿の情報を取り出す
+    final postUserId = (post['userId'] as int?) ?? 0;
+    final authorType = post['authorType']?.toString() ?? 'unknown';
+    final isMine = postUserId == myUserId;
+
+    // ✅ 表示できるか判定
+    final canSeeText = isMine || authorType != 'iwazaru';
+    final canSeeImage = isMine || authorType != 'mizaru';
+    final canSeeAudio = isMine || authorType != 'kikazaru';
+
+    final mediaLists = post['media'] as List?;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -324,54 +331,86 @@ print('=== mediaListの長さ: ${mediaLists?.length ?? 0}');
             const SizedBox(height: 10),
 
             // 本文
-            if (content.isNotEmpty) Text(content),
-            const SizedBox(height: 10),
+            if (content.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              if (canSeeText)
+               Text(content)
+              else
+                  const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    '🙊 この投稿は言わざるさんのため、本文が見えません',
+                    style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                ),
+            ],
 
             // ✅ 画像表示
-            if (images.isNotEmpty)
-              Wrap(
+            if (images.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              if (canSeeImage)
+                Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: images.map((img) {
                   final fileName = img['fileName'] as String;
                   final imageUrl = '$baseUrl/media/images/$fileName';
-                  print('🖼️ 画像URL: $imageUrl'); // ✅ この行を追加！
+           
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      imageUrl,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const SizedBox(
-                          width: 100, height: 100,
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox(
-                          width: 100, height: 100,
-                          child: Icon(Icons.broken_image, color: Colors.grey),
-                        );
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            if (images.isNotEmpty) const SizedBox(height: 10),
+                    imageUrl,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const SizedBox(
+                        width: 100, height: 100,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const SizedBox(
+                        width: 100, height: 100,
+                        child: Icon(Icons.broken_image, color: Colors.grey),
+                      );
+                    },
+                  ),
+                );
+              }).toList(),
+             )
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+              '🙈 この投稿は見ざるさんのため、画像が見えません',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ),
+        ],
 
             // ✅ 音声表示
-            ...audios.map((audio) {
-              final fileName = audio['fileName'] as String;
-              final audioUrl = '$baseUrl/media/audio/$fileName';
-              
-              return _AudioPlayerTile(
-                fileName: fileName,
-                audioUrl: audioUrl,
-              );
-            }),
+            if (audios.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              if (canSeeAudio)
+              ...audios.map((audio) {
+                final fileName = audio['fileName'] as String;
+                final audioUrl = '$baseUrl/media/audio/$fileName';
+                return _AudioPlayerTile(
+                  fileName: fileName,
+                  audioUrl: audioUrl,
+                );
+              })
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  '🙉 この投稿は聞かざるさんのため、音声が聞けません',
+                  style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
 
             // 投稿日時 + いいね・コメント
             const SizedBox(height: 8),
