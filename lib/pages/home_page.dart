@@ -288,77 +288,85 @@ class _HomePageState extends State<HomePage> {
           else if (serverPosts.isEmpty)
             const Center(child: Text('まだ投稿がありません'))
           else
-  ...serverPosts.map((post) {
-    final mediaList = (post['media'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-    final images = mediaList.where((m) => m['type'] == 'image').toList();
-    final audios = mediaList.where((m) => m['type'] == 'audio').toList();
-    final userName = post['authorName']?.toString() ?? '不明';
-    final content = post['content']?.toString() ?? post['text']?.toString() ?? '';
-    final createdAt = DateTime.fromMillisecondsSinceEpoch((post['createdAt'] as int?) ?? 0);
-    
-    final myUserId = 1; 
+...serverPosts.map((post) {
+  final mediaList = (post['media'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+  final images = mediaList.where((m) => m['type'] == 'image').toList();
+  final audios = mediaList.where((m) => m['type'] == 'audio').toList();
+  
+  final userName = post['authorName']?.toString() ?? '不明';
+  final content = post['content']?.toString() ?? post['text']?.toString() ?? '';
+  final createdAt = DateTime.fromMillisecondsSinceEpoch((post['createdAt'] as int?) ?? 0);
+  final textHidden = post['textHidden'] == true;
+  // ✅ 自分のIDを正しく取得
+  final myUserId = ApiClient.currentUser?['id'] as int? ?? 0;
+  final postUserId = (post['userId'] as int?) ?? 0;
+  final isMine = postUserId == myUserId;
+  final viewerType = ApiClient.currentUser?['accountType']?.toString() ?? 'unknown';
 
-    // 投稿の情報を取り出す
-    final postUserId = (post['userId'] as int?) ?? 0;
-    final authorType = post['authorType']?.toString() ?? 'unknown';
-    final isMine = postUserId == myUserId;
-
-    // ✅ 表示できるか判定
-    final canSeeText = isMine || authorType != 'iwazaru';
-    final canSeeImage = isMine || authorType != 'mizaru';
-    final canSeeAudio = isMine || authorType != 'kikazaru';
-
-    final mediaLists = post['media'] as List?;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ユーザー名
-            Row(
-              children: [
-                const CircleAvatar(child: Icon(Icons.person)),
-                const SizedBox(width: 10),
-                Text(
-                  userName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // 本文
-            if (content.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              if (canSeeText)
-               Text(content)
-              else
-                  const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '🙊 この投稿は言わざるさんのため、本文が見えません',
-                    style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-                  ),
-                ),
+  return Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ユーザー名
+          Row(
+            children: [
+              const CircleAvatar(child: Icon(Icons.person)),
+              const SizedBox(width: 10),
+              Text(
+                userName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
 
-            // ✅ 画像表示
-            if (images.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              if (canSeeImage)
-                Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: images.map((img) {
-                  final fileName = img['fileName'] as String;
-                  final imageUrl = '$baseUrl/media/images/$fileName';
-           
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
+          // 本文
+         
+
+
+if (textHidden) ...[
+  const SizedBox(height: 10),
+  const Padding(
+    padding: EdgeInsets.symmetric(vertical: 8),
+    child: Text(
+      '🙊 あなたは本文を見ることができません',
+      style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+    ),
+  ),
+] else if (content.isNotEmpty) ...[
+  const SizedBox(height: 10),
+  Text(content),
+],
+
+
+
+          // ✅ 画像表示：サーバーの blocked を使う
+          if (images.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: images.map((img) {
+                final bool blocked = img['blocked'] == true;
+                final mediaId = img['id'];
+
+                if (blocked) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      '🙈 あなたは画像を見ることができません',
+                      style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
+                  );
+                }
+
+                final imageUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
                     imageUrl,
                     width: 100,
                     height: 100,
@@ -379,50 +387,46 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               }).toList(),
-             )
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-              '🙈 この投稿は見ざるさんのため、画像が見えません',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-            ),
-          ),
-        ],
-
-            // ✅ 音声表示
-            if (audios.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              if (canSeeAudio)
-              ...audios.map((audio) {
-                final fileName = audio['fileName'] as String;
-                final audioUrl = '$baseUrl/media/audio/$fileName';
-                return _AudioPlayerTile(
-                  fileName: fileName,
-                  audioUrl: audioUrl,
-                );
-              })
-            else
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  '🙉 この投稿は聞かざるさんのため、音声が聞けません',
-                  style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-                ),
-              ),
-            ],
-
-            // 投稿日時 + いいね・コメント
-            const SizedBox(height: 8),
-            PostActions(
-              createdAt: createdAt,
-              initialLikeCount: (post['likeCount'] as int?) ?? 0,
             ),
           ],
-        ),
+
+          // ✅ 音声表示：同じく blocked を使う
+          if (audios.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...audios.asMap().entries.map((e) {
+              final audio = e.value;
+              final bool blocked = audio['blocked'] == true;
+              final mediaId = audio['id'];
+
+              if (blocked) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    '🙉 あなたは音声を聞くことができません',
+                    style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                );
+              }
+
+              final audioUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+              return _AudioPlayerTile(
+                fileName: '音声 ${e.key + 1}',
+                audioUrl: audioUrl,
+              );
+            })
+          ],
+
+          const SizedBox(height: 8),
+          PostActions(
+            createdAt: createdAt,
+            initialLikeCount: (post['likeCount'] as int?) ?? 0,
+          ),
+        ],
       ),
-    );
-  }),
+    ),
+  );
+}),
+
 
             
             

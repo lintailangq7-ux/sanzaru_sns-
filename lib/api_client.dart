@@ -72,10 +72,15 @@ final uri = Uri.parse('$baseUrl/api/posts').replace(
     throw ApiException('投稿の取得に失敗しました (${res.statusCode})');
   }
 
-  // ↓ ここも修正：JSONの形が { "posts": [...] } になっているので！
-  final Map<String, dynamic> responseData = jsonDecode(utf8.decode(res.bodyBytes));
-  final List<dynamic> data = responseData['posts'] as List<dynamic>;
-  return data.cast<Map<String, dynamic>>();
+try {
+    final Map<String, dynamic> responseData = jsonDecode(utf8.decode(res.bodyBytes));
+    print('=== パース成功: $responseData');
+    final List<dynamic> data = responseData['posts'] as List;
+    return data.cast<Map<String, dynamic>>();
+  } catch (e) {
+    print('=== JSONパースエラー: $e');  // 👈 ここを追加！
+    throw ApiException('投稿データの読み込みに失敗しました: $e');
+  }
 }
 
   ///投稿を作成
