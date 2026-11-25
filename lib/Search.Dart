@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart'; // 音声を選ぶ
 import 'post.dart';
 import 'search_result.dart';
 import 'pages/home_page.dart';
+import 'History.dart'; // ★あとで絶対削除(履歴画面への遷移用)
 
 void main() => runApp(const MyApp());
 
@@ -246,6 +247,16 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  // ★あとで絶対削除 ここから
+  // ---------- 履歴画面(History.dart)へ移動 ----------
+  void _openHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HistoryPage()),
+    );
+  }
+  // ★あとで絶対削除 ここまで
+
   // ---------- 下部メニューを押したとき ----------
   void _onNavTap(int index) {
     switch (index) {
@@ -347,6 +358,22 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
           ),
+
+          // ★あとで絶対削除 ここから
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: _openHistory,
+                  child: const Text('履歴へ'),
+                ),
+              ),
+            ),
+          ),
+          // ★あとで絶対削除 ここまで
+
           // 検索画像候補(画像)
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
