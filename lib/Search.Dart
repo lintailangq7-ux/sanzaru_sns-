@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart'; // 画像を選ぶ
 import 'package:file_picker/file_picker.dart'; // 音声を選ぶ
 import 'post.dart';
 import 'search_result.dart';
 import 'pages/home_page.dart';
-import 'History.dart'; // ★あとで絶対削除(履歴画面への遷移用)
+import 'api_client.dart';
+import 'media_search_result_page.dart';
+import 'wav_recorder.dart';
+import 'History.dart'; // ★あとで絶対削除(履歴画面への遷移用)// ★あとで絶対削除(履歴画面への遷移用)
 
 void main() => runApp(const MyApp());
 
@@ -164,6 +168,8 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _historyOpen = false;
+  final WavRecorder _recorder = WavRecorder();
+  bool _recording = false;
 
   XFile? _selectedImage; // 選んだ画像(画像検索用)
   PlatformFile? _selectedAudio; // 選んだ音声(音声検索用)
@@ -181,6 +187,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void dispose() {
+    _recorder.dispose();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -209,27 +216,115 @@ class _SearchPageState extends State<SearchPage> {
     _searchByImage();
   }
 
-  // ---------- 音声検索：音声ファイルを選ぶ(post.dart の addAudio と同じ方法) ----------
+    // ---------- 音声検索(Chrome用):WAVファイルを選ぶ ----------
   Future<void> _pickAudio() async {
     final files = await FilePicker.pickFiles(
-      type: FileType.audio,
+      type: FileType.custom,
+      allowedExtensions: ['wav'], // 検索できるのは WAV だけ
     );
     if (files.isEmpty) return; // キャンセルしたときは何もしない
     setState(() => _selectedAudio = files.first);
-    _showMessage('音声を選びました: ${files.first.name}');
-    _searchByVoice();
+    await _searchByVoice();
   }
 
-  // ---------- 画像検索の実行(これから実装) ----------
-  void _searchByImage() {
-    // ★ ここで _selectedImage をサーバーに送って検索する
-    //   (読み込みは post.dart と同じ: await _selectedImage!.readAsBytes())
+  
+
+    // ---------- 画像検索の実行 ----------
+  Future<void> _searchByImage() async {
+    final image = _selectedImage;
+    if (image == null) return;
+    try {
+      final bytes = await image.readAsBytes();
+      final posts = await ApiClient.searchByImage(UploadFile(bytes, image.name));
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MediaSearchResultPage(title: '画像検索の結果', posts: posts),
+        ),
+      );
+    } on ApiException catch (e) {
+      _showMessage(e.message);
+    }
+  }
+  // ---------- 音声検索の実行 ----------
+  Future<void> _searchByVoice() async {
+    final audio = _selectedAudio;
+    if (audio == null) return;
+    _showMessage('検索中...');
+    try {
+      final bytes = await audio.readAsBytes();
+      debugPrint('音声検索: ${audio.name} ${bytes.length}バイト');
+      final posts = await ApiClient.searchByAudio(UploadFile(bytes, audio.name));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MediaSearchResultPage(title: '音声検索の結果', posts: posts),
+        ),
+      );
+    } on ApiException catch (e) {
+      _showMessage(e.message);
+    } catch (e) {
+      debugPrint('音声検索エラー: $e');
+      _showMessage('エラー: $e');
+    }
   }
 
-  // ---------- 音声検索の実行(これから実装) ----------
-  void _searchByVoice() {
-    // ★ ここで _selectedAudio をサーバーに送って検索する
-    //   (読み込みは post.dart と同じ: await _selectedAudio!.readAsBytes())
+  // ---------- 音声検索ボタン:Chromeはファイルを選ぶ / アプリはマイクで録音 ----------
+  void _onVoiceTap() {
+    if (kIsWeb) {
+      _pickAudio();
+    } else {
+      _recordAndSearch();
+    }
+  }
+
+  // ---------- マイクで録音して音声検索(押すたびに 開始 / 停止) ----------
+  Future<void> _recordAndSearch() async {
+    try {
+      if (!_recording) {
+        final ok = await _recorder.start();
+        if (!ok) {
+          _showMessage('マイクが使えません。許可してください');
+          return;
+        }
+        setState(() => _recording = true);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('録音中...もう一度マイクのボタンを押すと検索します'),
+            duration: Duration(minutes: 2),
+          ));
+        return;
+      }
+
+      setState(() => _recording = false);
+      final wav = await _recorder.stop();
+      if (wav == null) {
+        _showMessage('録音が短すぎます。1秒以上録音してください');
+        return;
+      }
+      _showMessage('検索中...');
+      debugPrint('音声検索: ${wav.bytes.length}バイト');
+      final posts = await ApiClient.searchByAudio(wav);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MediaSearchResultPage(title: '音声検索の結果', posts: posts),
+        ),
+      );
+    } on ApiException catch (e) {
+      setState(() => _recording = false);
+      _showMessage(e.message);
+    } catch (e) {
+      debugPrint('音声検索エラー: $e');
+      setState(() => _recording = false);
+      _showMessage('エラー: $e');
+    }
   }
 
   // ---------- 画面の下にメッセージを出す(見た目は変えない) ----------
@@ -344,7 +439,7 @@ class _SearchPageState extends State<SearchPage> {
               padding: const EdgeInsets.only(top: 4),
               child: _ModeRow(
                 onImageTap: _pickImage, // 画像検索ボタン → 画像を選ぶ
-                onVoiceTap: _pickAudio, // 音声検索ボタン → 音声を選ぶ
+                onVoiceTap: _onVoiceTap, // 音声検索ボタン → Chromeはファイル、アプリはマイク
               ),
             ),
           ),

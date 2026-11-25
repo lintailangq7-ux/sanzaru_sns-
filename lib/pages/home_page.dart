@@ -58,33 +58,36 @@ class _HomePageState extends State<HomePage> {
     _loadPosts();
   }
 
+    int _requestId = 0; // 最新の読み込みだけを使うための番号
+
   Future<void> _loadPosts() async {
+    final myRequest = ++_requestId;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final result = await ApiClient.fetchPosts();
-      if (!mounted) return;
+      // フォロー中タブのときは、フォローしている人の投稿だけ
+      final result = await ApiClient.fetchPosts(homeOnly: selectedTab == 1);
+      if (!mounted || myRequest != _requestId) return;
       setState(() {
         serverPosts = result;
         _loading = false;
       });
     } on ApiException catch (e) {
-      if (!mounted) return;
+      if (!mounted || myRequest != _requestId) return;
       setState(() {
         _error = e.message;
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || myRequest != _requestId) return;
       setState(() {
         _error = '投稿の読み込みに失敗しました';
         _loading = false;
       });
     }
   }
-  // ★ここまで追加
 
   // 最新投稿内容を受け取る
   Future<void> openPostPage() async {
@@ -147,9 +150,9 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(width: 8),
         Expanded(child: ElevatedButton(
           onPressed: (){
-            setState(() {
-              selectedTab = 1 ;
-            });
+            if (selectedTab == 1) return; // すでにフォロー中なら何もしない
+            setState(() => selectedTab = 1);
+            _loadPosts(); // ← 追加:フォロー中の投稿を読み込み直す
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: 
@@ -158,6 +161,7 @@ class _HomePageState extends State<HomePage> {
             selectedTab == 1 ? Colors.white : Colors.black,
           ),
           child: const Text('フォロー中'),
+          
         ),
         ),
 
@@ -286,7 +290,16 @@ class _HomePageState extends State<HomePage> {
               ],
             )
           else if (serverPosts.isEmpty)
-            const Center(child: Text('まだ投稿がありません'))
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  selectedTab == 1
+                      ? 'フォローしている人の投稿はまだありません'
+                      : 'まだ投稿がありません',
+                ),
+              ),
+            )
           else
 ...serverPosts.map((post) {
   final mediaList = (post['media'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();

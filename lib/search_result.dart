@@ -2,27 +2,18 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'result_bottom_bar.dart';
 import 'api_client.dart'; // baseUrl・ApiClient・ApiException を使う
+import 'post_card.dart'; // ホームと同じ投稿カード
 
-// ★ 確認用のログイン(開発用。本番では使わない)
-class SearchDev {
-  static const String mail = 'saru01@example.com';
-  static const String password = 'password123';
-}
-
-/// テキスト検索 (GET /api/search)  SearchMode: テキスト=1 画像=2 音声=3
+/// テキスト検索 (GET /api/search?q=...)
 Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
   if (ApiClient.token == null) {
-    try {
-      await ApiClient.login(SearchDev.mail, SearchDev.password);
-    } catch (e) {
-      throw ApiException('ログインに失敗しました: $e');
-    }
+    throw ApiException('ログインが必要です');
   }
 
   final uri = Uri.parse('$baseUrl/api/search')
-      .replace(queryParameters: {'q': keyword, 'SearchMode': '1'});
+      .replace(queryParameters: {'q': keyword});
   final http.Response res;
   try {
     res = await http.get(uri, headers: {
@@ -44,7 +35,7 @@ Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
   return (data as List).cast<Map<String, dynamic>>();
 }
 
-/// 検索結果画面(仮)：見つかった投稿を単純に並べるだけ
+/// 検索結果画面:見つかった投稿を、ホームと同じカードで並べる
 class SearchResultPage extends StatefulWidget {
   final String keyword;
   const SearchResultPage({super.key, required this.keyword});
@@ -61,6 +52,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('「${widget.keyword}」の検索結果')),
+      bottomNavigationBar: const ResultBottomBar(), 
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _future,
         builder: (context, snap) {
@@ -74,16 +66,10 @@ class _SearchResultPageState extends State<SearchResultPage> {
           if (posts.isEmpty) {
             return const Center(child: Text('見つかりませんでした'));
           }
-          return ListView.separated(
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
             itemCount: posts.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final p = posts[i];
-              return ListTile(
-                title: Text('${p['body'] ?? ''}'),
-                subtitle: Text('${p['userName'] ?? ''}  ${p['timeAgo'] ?? ''}'),
-              );
-            },
+            itemBuilder: (context, i) => PostCard(post: posts[i]),
           );
         },
       ),

@@ -16,6 +16,13 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// 送るファイル(中身と名前)
+class UploadFile {
+  final Uint8List bytes;
+  final String name;
+  UploadFile(this.bytes, this.name);
+}
+
 class ApiClient {
   static String? token;
   static Map<String, dynamic>? currentUser;
@@ -144,6 +151,53 @@ try {
           ((data as Map)['error'] ?? '検索に失敗しました') as String);
     }
     return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// 画像で検索(似た画像の投稿)
+  static Future<List<Map<String, dynamic>>> searchByImage(UploadFile image) =>
+      _searchByFile('/api/search/image', 'image', image);
+
+  /// 音声で検索(録音した音に、音色が近い投稿)。WAV を送る
+  static Future<List<Map<String, dynamic>>> searchByAudio(UploadFile audio) =>
+      _searchByFile('/api/search/audio', 'audio', audio);
+
+  static Future<List<Map<String, dynamic>>> _searchByFile(
+      String path, String field, UploadFile file) async {
+    final req = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    req.headers['Authorization'] = 'Bearer $token';
+    req.files.add(http.MultipartFile.fromBytes(field, file.bytes, filename: file.name));
+    final http.Response res;
+    try {
+      res = await http.Response.fromStream(await req.send());
+    } catch (_) {
+      throw ApiException('サーバーに接続できませんでした');
+    }
+    final dynamic data;
+    try {
+      data = jsonDecode(utf8.decode(res.bodyBytes));
+    } catch (_) {
+      throw ApiException('サーバーでエラーが起きました (${res.statusCode})');
+    }
+    if (res.statusCode != 200) {
+      throw ApiException(((data as Map)['error'] ?? '検索に失敗しました') as String);
+    }
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+    /// 画像・音声の中身を取る(トークン付き)。contentType は音声の再生に使う
+  static Future<({Uint8List bytes, String contentType})> fetchMedia(int mediaId) async {
+    final http.Response res;
+    try {
+      res = await http.get(
+        Uri.parse('$baseUrl/api/media/$mediaId'),
+        headers: {if (token != null) 'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {
+      throw ApiException('サーバーに接続できませんでした');
+    }
+    if (res.statusCode == 403) throw ApiException('このアカウントでは見られません');
+    if (res.statusCode != 200) throw ApiException('読み込めませんでした (${res.statusCode})');
+    return (bytes: res.bodyBytes, contentType: res.headers['content-type'] ?? '');
   }
 
   /// 履歴を取得 (/api/history)  mode: 閲覧=1 いいね=2 ブックマーク=3
