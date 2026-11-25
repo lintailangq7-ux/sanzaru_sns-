@@ -1,17 +1,126 @@
 
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
-  static const Color mainGreen = Color(0xFF4CA632);
-  static const Color lineColor = Color(0xFF17394A);
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  static const green = Color(0xFF4CA632);
+
+  final ImagePicker picker = ImagePicker();
+
+  Uint8List? postImageBytes;
+
+  // 画像を選択する
+  Future<void> selectImage() async {
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image == null) return;
+
+    final bytes = await image.readAsBytes();
+
+    if (!mounted) return;
+
+    setState(() {
+      postImageBytes = bytes;
+    });
+  }
+
+  // プロフィール画像
+  Widget avatar(double size) => Container(
+    width: size,
+    height: size,
+    decoration: const BoxDecoration(
+      color: green,
+      shape: BoxShape.circle,
+    ),
+  );
+
+  // アイコンボタン
+  Widget actionIcon(IconData icon, Color color, String name) =>
+      IconButton(
+        onPressed: () => debugPrint(name),
+        constraints: const BoxConstraints(),
+        padding: const EdgeInsets.only(right: 10),
+        icon: Icon(icon, color: color),
+      );
+
+  // 下部メニュー
+  Widget bottomIcon(IconData icon, double size, String name) =>
+      IconButton(
+        onPressed: () => debugPrint(name),
+        icon: Icon(icon, size: size),
+      );
+
+  // 投稿画像
+  Widget postImage(BuildContext context) => Center(
+    child: Container(
+      width: MediaQuery.sizeOf(context).width * 0.45,
+      height: 138,
+      color: postImageBytes == null ? green : Colors.transparent,
+      child: postImageBytes == null
+          ? const Center(
+              child: Text(
+                '画像未選択',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : Image.memory(
+              postImageBytes!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 138,
+            ),
+    ),
+  );
+
+  // プロフィール編集ボタン
+  Widget editButton() => OutlinedButton(
+    onPressed: () => debugPrint('プロフィール編集'),
+    style: OutlinedButton.styleFrom(
+      foregroundColor: Colors.black,
+      side: const BorderSide(color: Colors.black),
+      shape: const StadiumBorder(),
+    ),
+    child: const Text('プロフィール編集'),
+  );
+
+  // 投稿操作
+  Widget postActions() => Row(
+    children: [
+      actionIcon(Icons.favorite, Colors.red, 'いいね'),
+      actionIcon(Icons.chat_bubble_outline, Colors.black, 'コメント'),
+      actionIcon(Icons.bookmark_border, Colors.black54, 'ブックマーク'),
+      const Spacer(),
+      TextButton(
+        onPressed: () => debugPrint('投稿削除'),
+        child: const Text(
+          '削除',
+          style: TextStyle(color: Colors.red),
+        ),
+      ),
+      TextButton(
+        onPressed: () => debugPrint('投稿編集'),
+        child: const Text(
+          '編集',
+          style: TextStyle(color: Colors.black),
+        ),
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: SafeArea(
         child: Column(
           children: [
@@ -21,249 +130,86 @@ class ProfilePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 戻るボタン
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12, top: 5),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.black,
-                          size: 28,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, size: 28),
+                      onPressed: () => Navigator.pop(context),
                     ),
 
-                    // プロフィール情報
+                    // プロフィール
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // プロフィール画像
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: mainGreen,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: lineColor,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-
+                              avatar(60),
                               const Spacer(),
-
-                              // プロフィール編集
-                              OutlinedButton(
-                                onPressed: () {
-                                  print('プロフィール編集');
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.black,
-                                  side: const BorderSide(
-                                    color: Colors.black,
-                                    width: 1.5,
-                                  ),
-                                  shape: const StadiumBorder(),
-                                ),
-                                child: const Text('プロフィール編集'),
-                              ),
+                              editButton(),
                             ],
                           ),
-
                           const SizedBox(height: 5),
-
+                          const Text('アカウント名'),
+                          const SizedBox(height: 5),
                           const Text(
-                            'アカウント名',
-                            style: TextStyle(fontSize: 13),
+                            '🐵 一言投稿 文字が見えません',
+                            style: TextStyle(fontSize: 12),
                           ),
-
-                          const SizedBox(height: 5),
-
-                          const Row(
-                            children: [
-                              Text('🐵 '),
-                              Text(
-                                '一言投稿',
-                                style: TextStyle(
-                                  color: Color(0xFF5799ED),
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                ' 文字が見えません',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          ),
-
                           const SizedBox(height: 15),
-
                           const Row(
                             children: [
-                              Text(
-                                '0 フォロー中',
-                                style: TextStyle(fontSize: 13),
-                              ),
+                              Text('0 フォロー中'),
                               SizedBox(width: 15),
-                              Text(
-                                '0 フォロワー',
-                                style: TextStyle(fontSize: 13),
-                              ),
+                              Text('0 フォロワー'),
                             ],
                           ),
-
                           const SizedBox(height: 8),
-
-                          const Text(
-                            'ポスト',
-                            style: TextStyle(fontSize: 13),
-                          ),
+                          const Text('ポスト'),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 12),
+                    const Divider(color: Colors.black26, height: 1),
 
-                    const Divider(
-                      color: Colors.black26,
-                      thickness: 1,
-                      height: 1,
-                    ),
-
-                    // 投稿一覧
+                    // 投稿
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(15, 20, 15, 10),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 投稿者情報
-                          Row(
-                            children: [
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: mainGreen,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: lineColor,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(width: 12),
-
-                              const Text(
-                                'アカウント名',
-                                style: TextStyle(fontSize: 13),
-                              ),
-                            ],
+                          // 投稿者
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: Row(
+                              children: [
+                                avatar(34),
+                                const SizedBox(width: 12),
+                                const Text('アカウント名'),
+                              ],
+                            ),
                           ),
 
                           const SizedBox(height: 12),
 
-                          const Center(
+                          // 投稿した文章
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 15),
                             child: Text(
-                              '～～～～～～～～～～～～～～',
-                              style: TextStyle(fontSize: 12),
+                              'ここに投稿した人が入力した文章が表示されます',
+                              style: TextStyle(fontSize: 14),
                             ),
                           ),
 
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 10),
 
                           // 投稿画像
-                          Center(
-                            child: Container(
-                              width: 198,
-                              height: 138,
-                              decoration: BoxDecoration(
-                                color: mainGreen,
-                                border: Border.all(
-                                  color: lineColor,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
+                          postImage(context),
 
-                          const SizedBox(height: 5),
-
-                          // 投稿アクション
-                          Row(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  print('いいね');
-                                },
-                                icon: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.red,
-                                ),
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.only(right: 10),
-                              ),
-
-                              IconButton(
-                                onPressed: () {
-                                  print('コメント');
-                                },
-                                icon: const Icon(
-                                  Icons.chat_bubble_outline,
-                                  color: Colors.black,
-                                ),
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.only(right: 10),
-                              ),
-
-                              IconButton(
-                                onPressed: () {
-                                  print('ブックマーク');
-                                },
-                                icon: const Icon(
-                                  Icons.bookmark_border,
-                                  color: Colors.black54,
-                                ),
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                              ),
-
-                              const Spacer(),
-
-                              TextButton(
-                                onPressed: () {
-                                  print('投稿削除');
-                                },
-                                child: const Text(
-                                  '削除',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-
-                              TextButton(
-                                onPressed: () {
-                                  print('投稿編集');
-                                },
-                                child: const Text(
-                                  '編集',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          // 投稿操作
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: postActions(),
                           ),
                         ],
                       ),
@@ -284,35 +230,9 @@ class ProfilePage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      print('検索');
-                    },
-                    icon: const Icon(
-                      Icons.search,
-                      size: 30,
-                    ),
-                  ),
-
-                  IconButton(
-                    onPressed: () {
-                      print('ホーム');
-                    },
-                    icon: const Icon(
-                      Icons.home,
-                      size: 32,
-                    ),
-                  ),
-
-                  IconButton(
-                    onPressed: () {
-                      print('マイページ');
-                    },
-                    icon: const Icon(
-                      Icons.person,
-                      size: 30,
-                    ),
-                  ),
+                  bottomIcon(Icons.search, 30, '検索'),
+                  bottomIcon(Icons.home, 32, 'ホーム'),
+                  bottomIcon(Icons.person, 30, 'マイページ'),
                 ],
               ),
             ),
@@ -320,13 +240,11 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
 
-      // 投稿追加ボタン
+      // 投稿追加・画像選択ボタン
       floatingActionButton: FloatingActionButton(
         mini: true,
         backgroundColor: Colors.cyan,
-        onPressed: () {
-          print('投稿追加');
-        },
+        onPressed: selectImage,
         child: const Icon(
           Icons.add,
           color: Colors.yellow,
