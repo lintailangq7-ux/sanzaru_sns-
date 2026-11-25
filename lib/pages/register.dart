@@ -41,14 +41,31 @@ class _RegisterPageState extends State<RegisterPage> {
     _busy = true;
     _error = null;
   });
+  
   try {
-    await ApiClient.register(
-        email.text.trim(), user.text.trim(), password.text);
+    // ✅ 登録実行
+    final result = await ApiClient.register(
+      email.text.trim(),
+      user.text.trim(),
+      password.text,
+    );
+    
     if (!mounted) return;
+    
+    // ✅ 成功時：トークンが返ってきたら保存
+    if (result.containsKey('token')) {
+      ApiClient.token = result['token'] as String?;
+    }
+    
+    // ✅ 次の画面へ
     Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RevealPage()));
+      MaterialPageRoute(builder: (_) => const RevealPage()),
+    );
+    
   } on ApiException catch (e) {
     setState(() => _error = e.message);
+  } catch (e) {
+    setState(() => _error = '通信エラーが発生しました');
   } finally {
     if (mounted) setState(() => _busy = false);
   }
@@ -206,12 +223,30 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   const SizedBox(height: 10),
 
+                  
+                  
                   // 見出し
                   const Text(
                     '新規登録',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  if (_error != null)
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                      textAlign: TextAlign.center,
                     ),
                   ),
 

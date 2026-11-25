@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:typed_data';
+import '../Search.Dart' as search;
+import 'home_page.dart';   
+import '../api_client.dart';
 
 
 
@@ -20,7 +24,69 @@ class PostData{
 }
 
 
+class PostMedia {
+  final String type;
+  final String fileName;
 
+  PostMedia({required this.type, required this.fileName});
+
+  factory PostMedia.fromJson(Map<String, dynamic> json) {
+    return PostMedia(
+      type: json['type'] as String,
+      fileName: json['fileName'] as String,
+    );
+  }
+}
+
+class Post {
+  final int id;
+  final int userId;
+  final String? content;
+  final String? text;
+  final DateTime createdAt;
+  final String authorName;
+  final String authorMail;
+  final String authorType; // "mizaru" / "iwazaru" / "kikazaru"
+  final int likeCount;
+  final bool liked;
+  final int replyCount;
+  final List<PostMedia> media;
+
+  Post({
+    required this.id,
+    required this.userId,
+    this.content,
+    this.text,
+    required this.createdAt,
+    required this.authorName,
+    required this.authorMail,
+    required this.authorType,
+    required this.likeCount,
+    required this.liked,
+    required this.replyCount,
+    required this.media,
+  });
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    var mediaList = (json['media'] as List)
+        .map((m) => PostMedia.fromJson(m as Map<String, dynamic>))
+        .toList();
+    return Post(
+      id: json['id'] as int,
+      userId: json['userId'] as int,
+      content: json['content'] as String?,
+      text: json['text'] as String?,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int),
+      authorName: json['authorName'] as String,
+      authorMail: json['authorMail'] as String,
+      authorType: json['authorType'] as String? ?? 'unknown',
+      likeCount: json['likeCount'] as int,
+      liked: json['liked'] as bool,
+      replyCount: json['replyCount'] as int,
+      media: mediaList,
+    );
+  }
+}
 class PostPage extends StatefulWidget {
   const PostPage({super.key});
   
@@ -34,7 +100,15 @@ class PostPage extends StatefulWidget {
   
   //公開範囲
   class _PostPageState extends State<PostPage>{
-    String visibility = '全体に公開';
+    String visibility = 'public';
+    final Map<String, String> visibilityLabels = {
+      'public': '全体に公開',
+      'followers': 'フォロワーのみ',
+      'private': '自分のみ',
+    };
+
+  bool _isPosting = false;
+  String? _errorMessage;
   
    // テキスト入力
   final TextEditingController postController =
@@ -51,6 +125,9 @@ final AudioPlayer audioPlayer = AudioPlayer();
 
 int? playingAudioIndex;
 bool isPlaying = false;
+
+
+
  // ハッシュタグ追加
   void addHashtag() {
     final hashtagController = TextEditingController();
@@ -185,24 +262,67 @@ Future<void> toggleAudio(int index) async {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           TextButton(
-            onPressed: (){
-            if(postController.text.trim().isEmpty &&
-            selectedImages.isEmpty &&
-            selectedAudios.isEmpty){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('投稿内容を入力してください'),
-              ),);
-              return;
-            }
-            //投稿データを作成
-            final newPost = PostData(
-              text: postController.text.trim(),
-              visibility: visibility, 
-              images: List<XFile>.from(selectedImages), 
-              audios: List<PlatformFile>.from(selectedAudios),
-            );
-            //ホーム画面に戻り、投稿データを渡す
-            Navigator.pop(context,newPost);
-          },
+onPressed: _isPosting ? null : () async {
+  if(postController.text.trim().isEmpty &&
+      selectedImages.isEmpty &&
+      selectedAudios.isEmpty){
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('投稿内容を入力してください')),
+    );
+    return;
+  }
+
+  setState(() {
+    _isPosting = true;
+    _errorMessage = null;
+  });
+
+  try {
+    // 画像データを読み込み
+    Uint8List? imageBytes;
+    String? imageName;
+    if (selectedImages.isNotEmpty) {
+      imageBytes = await selectedImages.first.readAsBytes();
+      imageName = selectedImages.first.name;
+    }
+
+    // 音声データを読み込み
+    Uint8List? audioBytes;
+    String? audioName;
+    if (selectedAudios.isNotEmpty) {
+      audioBytes = await selectedAudios.first.readAsBytes();
+      audioName = selectedAudios.first.name;
+    }
+
+    // サーバーに送信
+    await ApiClient.createPost(
+      body: postController.text.trim(),
+      visibility: visibility,
+      imageBytes: imageBytes,
+      imageName: imageName,
+      audioBytes: audioBytes,
+      audioName: audioName,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context); // 成功したら戻る
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('投稿しました！')),
+    );
+  } on ApiException catch (e) {
+    setState(() => _errorMessage = e.message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message)),
+    );
+  } catch (e) {
+    setState(() => _errorMessage = '通信エラーが発生しました');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('通信エラーが発生しました')),
+    );
+  } finally {
+    if (mounted) setState(() => _isPosting = false);
+  }
+},
           child: const Text('投稿',
           style: TextStyle(
             color:Colors.blue,
@@ -247,20 +367,12 @@ Future<void> toggleAudio(int index) async {
             // 公開範囲
             DropdownButton<String>(
               value: visibility,
-              items: const [
-                DropdownMenuItem(
-                  value: '全体に公開',
-                  child: Text('全体に公開'),
-                ),
-                DropdownMenuItem(
-                  value: 'フォロワーのみ',
-                  child: Text('フォロワーのみ'),
-                ),
-                DropdownMenuItem(
-                  value: '自分のみ',
-                  child: Text('自分のみ'),
-                ),
-              ],
+                            items: visibilityLabels.entries
+                  .map((e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ))
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {

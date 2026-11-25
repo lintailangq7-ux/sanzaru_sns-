@@ -1,5 +1,8 @@
 import 'register.dart';
 import 'package:flutter/material.dart';
+import '../api_client.dart';
+import 'home_page.dart';     
+
 
 void main() => runApp(const MaterialApp(
   debugShowCheckedModeBanner: false,
@@ -83,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'assets/images/icon.png',
+                        'assets/images/treeMonkey.png',
                           width: 205,
                           height: 130,
                           fit: BoxFit.cover,
@@ -152,9 +155,28 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           height: 29,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: ()  async{
+                                final mail = email.text.trim();
+                                final pass = password.text.trim();
                               print(email.text);
                               print(password.text);
+                              try {
+                                //  サーバーに送信
+                                await ApiClient.login(mail, pass);
+
+    
+
+                                // ホーム画面へ移動
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const HomePage()),
+                                );
+                              } on ApiException catch (e) {
+                                if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.message)),
+                                  );
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFFFF24),

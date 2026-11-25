@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // 画像を選ぶ
+import 'package:file_picker/file_picker.dart'; // 音声を選ぶ
 import 'post.dart';
-import 'search_result.dart'; // 追加
+import 'search_result.dart';
+import 'pages/home_page.dart';
+import 'History.dart'; // ★あとで絶対削除(履歴画面への遷移用)
+
 void main() => runApp(const MyApp());
 
 // ============================================================
@@ -23,24 +28,33 @@ class Palette {
   static const Color line = Colors.black; // 枠線
   static const Color text = Colors.black; // 文字
   static const Color bg = Colors.white; // 背景
+  static const Color imageMissing = Color(0xFFE0E0E0); // 画像が読めないときの灰色
+}
 
-  // 画像検索ボタンの四角形の色
-  static const Color imageSearchBox = Color(0xFFE57373);
+// ============================================================
+// 【2-2】画像：使う画像はここだけ書き換えればOK
+//   (assets/images フォルダのファイル名。大文字小文字も同じにする)
+// ============================================================
+class Images {
+  static const String _dir = 'assets/images/';
 
-  // 履歴の「画像」行の四角形の色
-  static const Color historyImageBox = Color(0xFF64B5F6);
+  // 画像検索ボタンの画像
+  static const String imageSearchBox = '${_dir}Yama.png';
 
-  // 検索画像候補の四角形の色(9個。数を変えたら中身も増減する)
-  static const List<Color> candidates = [
-    Color(0xFFE57373), // 赤
-    Color(0xFFFFB74D), // オレンジ
-    Color(0xFFFFF176), // 黄
-    Color(0xFF81C784), // 緑
-    Color(0xFF4DB6AC), // 青緑
-    Color(0xFF64B5F6), // 青
-    Color(0xFF9575CD), // 紫
-    Color(0xFFF06292), // ピンク
-    Color(0xFFA1887F), // 茶
+  // 履歴の「画像」行の画像
+  static const String historyImageBox = '${_dir}MrDOG.png';
+
+  // 検索画像候補の画像(9個。数を変えたら中身も増減する)
+  static const List<String> candidates = [
+    '${_dir}food.jpg',
+    '${_dir}sports.jpg',
+    '${_dir}ryokou.jpg',
+    '${_dir}news.jpg',
+    '${_dir}game.jpg',
+    '${_dir}entame.jpg',
+    '${_dir}tpicJapan.jpg',
+    '${_dir}Yama.png',
+    '${_dir}PayPayDome.png',
   ];
 }
 
@@ -65,11 +79,11 @@ class Sizes {
   static const double historyLeft = mainLeft + backButtonWidth + gap + 48;
   static const double historyRight = gap + 48;
   static const double historyRowHeight = 34;
-  static const double historyImageWidth = 28; // 「画像」行の四角形
+  static const double historyImageWidth = 28; // 「画像」行の画像
   static const double historyImageHeight = 32;
 
   // 画像検索 / 音声検索ボタン
-  static const double modeIconWidth = 86; // 画像検索ボタンの四角形
+  static const double modeIconWidth = 86; // 画像検索ボタンの画像
   static const double modeIconHeight = 100;
   static const double modeButtonRadius = 32;
 
@@ -100,18 +114,16 @@ const List<HistoryItem> historyItems = [
 
 // 下部メニュー(ホーム画面と同じ並び。順番を変えたら _onNavTap の番号も合わせる)
 class NavIndex {
-  static const int home = 0;
-  static const int search = 1;
-  static const int post = 2;
-  static const int myPage = 3;
+  static const int search = 0;
+  static const int home = 1;
+  static const int myPage = 2;
 
   static const int current = search; // この画面で選ばれている項目
 }
 
 const List<BottomNavigationBarItem> bottomNavItems = [
-  BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
   BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
-  BottomNavigationBarItem(icon: Icon(Icons.add_box), label: '投稿'),
+  BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
   BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
 ];
 
@@ -153,6 +165,9 @@ class _SearchPageState extends State<SearchPage> {
   final FocusNode _focusNode = FocusNode();
   bool _historyOpen = false;
 
+  XFile? _selectedImage; // 選んだ画像(画像検索用)
+  PlatformFile? _selectedAudio; // 選んだ音声(音声検索用)
+
   bool get _hasText => _controller.text.isNotEmpty;
 
   @override
@@ -170,6 +185,7 @@ class _SearchPageState extends State<SearchPage> {
     _focusNode.dispose();
     super.dispose();
   }
+
   // ---------- テキスト検索を実行 ----------
   void _search() {
     final keyword = _controller.text.trim();
@@ -184,24 +200,80 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  // ---------- 画像検索：画像を選ぶ(post.dart の addImage と同じ方法) ----------
+  Future<void> _pickImage() async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image == null) return; // キャンセルしたときは何もしない
+    setState(() => _selectedImage = image);
+    _showMessage('画像を選びました: ${image.name}');
+    _searchByImage();
+  }
+
+  // ---------- 音声検索：音声ファイルを選ぶ(post.dart の addAudio と同じ方法) ----------
+  Future<void> _pickAudio() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.audio,
+    );
+    if (files.isEmpty) return; // キャンセルしたときは何もしない
+    setState(() => _selectedAudio = files.first);
+    _showMessage('音声を選びました: ${files.first.name}');
+    _searchByVoice();
+  }
+
+  // ---------- 画像検索の実行(これから実装) ----------
+  void _searchByImage() {
+    // ★ ここで _selectedImage をサーバーに送って検索する
+    //   (読み込みは post.dart と同じ: await _selectedImage!.readAsBytes())
+  }
+
+  // ---------- 音声検索の実行(これから実装) ----------
+  void _searchByVoice() {
+    // ★ ここで _selectedAudio をサーバーに送って検索する
+    //   (読み込みは post.dart と同じ: await _selectedAudio!.readAsBytes())
+  }
+
+  // ---------- 画面の下にメッセージを出す(見た目は変えない) ----------
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
   // ---------- 投稿作成画面へ移動 ----------
   Future<void> _openPostPage() async {
     await Navigator.push<PostData>(
       context,
       MaterialPageRoute(builder: (context) => PostPage(userName: 'exampleUser')),
-       );
+    );
   }
+
+  // ★あとで絶対削除 ここから
+  // ---------- 履歴画面(History.dart)へ移動 ----------
+  void _openHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HistoryPage()),
+    );
+  }
+  // ★あとで絶対削除 ここまで
 
   // ---------- 下部メニューを押したとき ----------
   void _onNavTap(int index) {
     switch (index) {
-      case NavIndex.post:
-        _openPostPage();
-        break;
       // 他の画面ができたら、ここに移動の処理を足す
-      case NavIndex.home:
       case NavIndex.search:
+
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const SearchPage()));
+        //検索画面なので何もしない
+
+        break;
+      case NavIndex.home:
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const HomePage()));
+        break;
       case NavIndex.myPage:
+      //マイページの遷移処理
         break;
     }
   }
@@ -251,6 +323,9 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- メイン(スクロールで流れる部分) ----------
   Widget _buildMain() {
+    // 文字入力中(履歴が開いている間)は、検索バーと履歴だけ表示する
+    final typing = _historyOpen && _hasText;
+
     return CustomScrollView(
       slivers: [
         // 検索バー：スクロールしても上に張り付く
@@ -261,42 +336,64 @@ class _SearchPageState extends State<SearchPage> {
             child: _buildSearchRow(),
           ),
         ),
-        // 画像検索 / 音声検索ボタン
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: _ModeRow(),
-          ),
-        ),
-        // 「検索画像候補」の見出し
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
-            child: Text(
-              Texts.candidateTitle,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        // 検索画像候補(色付き四角形)
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: Sizes.candidateColumns,
-              mainAxisSpacing: Sizes.candidateSpacing,
-              crossAxisSpacing: Sizes.candidateSpacing,
-              childAspectRatio: Sizes.candidateAspect,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => ColorBox(
-                color: Palette.candidates[i],
-                radius: Sizes.candidateRadius,
+
+        if (!typing) ...[
+          // 画像検索 / 音声検索ボタン
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: _ModeRow(
+                onImageTap: _pickImage, // 画像検索ボタン → 画像を選ぶ
+                onVoiceTap: _pickAudio, // 音声検索ボタン → 音声を選ぶ
               ),
-              childCount: Palette.candidates.length,
             ),
           ),
-        ),
+          // 「検索画像候補」の見出し
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(12, 24, 0, 8),
+              child: Text(
+                Texts.candidateTitle,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+
+          // ★あとで絶対削除 ここから
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: _openHistory,
+                  child: const Text('履歴へ'),
+                ),
+              ),
+            ),
+          ),
+          // ★あとで絶対削除 ここまで
+
+          // 検索画像候補(画像)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: Sizes.candidateColumns,
+                mainAxisSpacing: Sizes.candidateSpacing,
+                crossAxisSpacing: Sizes.candidateSpacing,
+                childAspectRatio: Sizes.candidateAspect,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => ImageBox(
+                  path: Images.candidates[i],
+                  radius: Sizes.candidateRadius,
+                ),
+                childCount: Images.candidates.length,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -324,10 +421,6 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---------- 検索欄(虫めがね + 入力 + ▼) ----------
   Widget _buildSearchField() {
-    GestureDetector(
-      onTap: _search,
-      child: const _SearchIcon(size: Sizes.searchIcon),
-    ),
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -336,12 +429,18 @@ class _SearchPageState extends State<SearchPage> {
       ),
       child: Row(
         children: [
-          const _SearchIcon(size: Sizes.searchIcon),
+          // 虫めがね：押すとテキスト検索を実行
+          GestureDetector(
+            onTap: _search,
+            child: const _SearchIcon(size: Sizes.searchIcon),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
+              textInputAction: TextInputAction.search, // キーボードの「検索」キー
+              onSubmitted: (_) => _search(), // Enter / 検索キーで実行
               style: const TextStyle(fontSize: 18),
               decoration: const InputDecoration(
                 hintText: Texts.placeholder,
@@ -414,10 +513,10 @@ class _HistoryRow extends StatelessWidget {
           ],
         );
       case HistoryKind.image:
-        return const ColorBox(
+        return const ImageBox(
+          path: Images.historyImageBox,
           width: Sizes.historyImageWidth,
           height: Sizes.historyImageHeight,
-          color: Palette.historyImageBox,
         );
     }
   }
@@ -445,29 +544,33 @@ class _HistoryRow extends StatelessWidget {
 
 /// 画像検索 / 音声検索ボタンの行
 class _ModeRow extends StatelessWidget {
-  const _ModeRow();
+  final VoidCallback onImageTap; // 画像検索ボタンを押したとき
+  final VoidCallback onVoiceTap; // 音声検索ボタンを押したとき
+  const _ModeRow({required this.onImageTap, required this.onVoiceTap});
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: _ModeButton(
-            icon: ColorBox(
+            icon: const ImageBox(
+              path: Images.imageSearchBox,
               width: Sizes.modeIconWidth,
               height: Sizes.modeIconHeight,
-              color: Palette.imageSearchBox,
             ),
             label1: Texts.imageSearch1,
             label2: Texts.imageSearch2,
+            onTap: onImageTap,
           ),
         ),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Expanded(
           child: _ModeButton(
-            icon: _MicIcon(width: 80, height: 100, stroke: 7),
+            icon: const _MicIcon(width: 80, height: 100, stroke: 7),
             label1: Texts.voiceSearch1,
             label2: Texts.voiceSearch2,
+            onTap: onVoiceTap,
           ),
         ),
       ],
@@ -475,21 +578,23 @@ class _ModeRow extends StatelessWidget {
   }
 }
 
-/// 画像検索 / 音声検索ボタン1つ(見かけだけ)
+/// 画像検索 / 音声検索ボタン1つ
 class _ModeButton extends StatelessWidget {
   final Widget icon;
   final String label1;
   final String label2;
+  final VoidCallback onTap; // 押したときの処理
   const _ModeButton({
     required this.icon,
     required this.label1,
     required this.label2,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(Sizes.modeButtonRadius),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -517,18 +622,17 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-/// 色付きの四角形(画像の代わり)
-/// 本物の画像にするときは、build の中身を
-///   Image.asset('assets/images/xxx.png', fit: BoxFit.cover)
-/// に差し替えるだけでよい(使っている場所はすべてこの部品を通る)
-class ColorBox extends StatelessWidget {
-  final Color color;
+/// 画像(assets/images のファイルを表示する)
+/// 画像が読めないときは灰色の四角形になる。
+/// 使っている場所はすべてこの部品を通る。
+class ImageBox extends StatelessWidget {
+  final String path; // 例: 'assets/images/food.jpg'
   final double? width; // 省略すると、置かれた場所いっぱいに広がる
   final double? height;
   final double radius;
-  const ColorBox({
+  const ImageBox({
     super.key,
-    required this.color,
+    required this.path,
     this.width,
     this.height,
     this.radius = 0,
@@ -536,12 +640,18 @@ class ColorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(radius),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.asset(
+        path,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => Container(
+          width: width,
+          height: height,
+          color: Palette.imageMissing,
+        ),
       ),
     );
   }
