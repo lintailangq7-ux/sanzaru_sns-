@@ -9,6 +9,7 @@ import 'api_client.dart';
 import 'media_search_result_page.dart';
 import 'wav_recorder.dart';
 import 'History.dart'; // ★あとで絶対削除(履歴画面への遷移用)// ★あとで絶対削除(履歴画面への遷移用)
+import 'profile_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -368,7 +369,10 @@ class _SearchPageState extends State<SearchPage> {
             context, MaterialPageRoute(builder: (_) => const HomePage()));
         break;
       case NavIndex.myPage:
-      //マイページの遷移処理
+       Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const ProfilePage()),
+  );
         break;
     }
   }
