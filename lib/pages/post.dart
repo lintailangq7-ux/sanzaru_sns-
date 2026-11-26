@@ -183,11 +183,19 @@ bool isPlaying = false;
   // 画像追加
 Future<void> addImage() async {
   final images = await ImagePicker().pickMultiImage();
-
-  if (images.isNotEmpty) {
-    setState(() {
-      selectedImages.addAll(images);
-    });
+  if (images.isEmpty || !mounted) return;
+  final room = 4 - selectedImages.length;
+  if (room <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('画像は4枚までです')),
+    );
+    return;
+  }
+  setState(() => selectedImages.addAll(images.take(room)));
+  if (images.length > room) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('画像は4枚までなので、超えた分は追加しませんでした')),
+    );
   }
 }
 
@@ -202,13 +210,21 @@ void removeImage(int index) {
 Future<void> addAudio() async {
   final files = await FilePicker.pickFiles(
     type: FileType.audio,
-
   );
-
-  if (files.isNotEmpty) {
-    setState(() {
-      selectedAudios.addAll(files);
-    });
+  if (files.isEmpty || !mounted) return;
+  final room = 2 - selectedAudios.length;
+  if (room <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('音声は2つまでです')),
+    );
+    return;
+  }
+  final added = files.take(room).toList();
+  setState(() => selectedAudios.addAll(added));
+  if (added.any((f) => !f.name.toLowerCase().endsWith('.wav'))) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('WAV以外の音声は、音声検索の対象になりません')),
+    );
   }
 }
 
@@ -278,32 +294,25 @@ onPressed: _isPosting ? null : () async {
   });
 
   try {
-    // 画像データを読み込み
-    Uint8List? imageBytes;
-    String? imageName;
-    if (selectedImages.isNotEmpty) {
-      imageBytes = await selectedImages.first.readAsBytes();
-      imageName = selectedImages.first.name;
+        // 画像・音声を全部読み込む
+    final images = <UploadFile>[];
+    for (final x in selectedImages) {
+      images.add(UploadFile(await x.readAsBytes(), x.name));
+    }
+    final audios = <UploadFile>[];
+    for (final a in selectedAudios) {
+      audios.add(UploadFile(await a.readAsBytes(), a.name));
     }
 
-    // 音声データを読み込み
-    Uint8List? audioBytes;
-    String? audioName;
-    if (selectedAudios.isNotEmpty) {
-      audioBytes = await selectedAudios.first.readAsBytes();
-      audioName = selectedAudios.first.name;
-    }
-
-    // サーバーに送信
+    // サーバーに送信(指紋はサーバーが計算して保存する)
     await ApiClient.createPost(
       body: postController.text.trim(),
       visibility: visibility,
-      imageBytes: imageBytes,
-      imageName: imageName,
-      audioBytes: audioBytes,
-      audioName: audioName,
+      images: images,
+      audios: audios,
     );
 
+    
     if (!mounted) return;
     Navigator.pop(context); // 成功したら戻る
     ScaffoldMessenger.of(context).showSnackBar(

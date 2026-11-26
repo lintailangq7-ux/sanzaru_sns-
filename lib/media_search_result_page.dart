@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'post_card.dart';
+import 'result_bottom_bar.dart';
 
 /// 画像検索・音声検索の結果を、ホームと同じカードで一覧にする画面
 class MediaSearchResultPage extends StatelessWidget {
@@ -15,6 +16,7 @@ class MediaSearchResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
+      bottomNavigationBar: const ResultBottomBar(),
       body: posts.isEmpty
           ? const Center(child: Text('見つかりませんでした'))
           : ListView.builder(

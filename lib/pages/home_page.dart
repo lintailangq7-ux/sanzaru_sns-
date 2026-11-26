@@ -29,14 +29,15 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
   //検索画面へ遷移
-  void openSearchPage() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const search.SearchPage(),
-    ),
-  );
-}
+  Future<void> openSearchPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const search.SearchPage(),
+      ),
+    );
+    if (mounted) setState(() => selectedIndex = 1); // 戻ってきたらホームの表示にする
+  }
 //マイページへ遷移
 void openProfilePage(){
   Navigator.push(
@@ -140,9 +141,9 @@ void openProfilePage(){
           
         //タブボタン
         Row(children: [Expanded(child: ElevatedButton(onPressed:(){
-          setState(() {
-            selectedTab = 0;
-          });
+          if (selectedTab == 0) return; // すでにおすすめなら何もしない
+          setState(() => selectedTab = 0);
+          _loadPosts(); // おすすめの投稿を読み込み直す
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: 
