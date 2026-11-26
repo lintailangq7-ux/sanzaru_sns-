@@ -94,20 +94,18 @@ try {
   static Future<int> createPost({
     required String body,
     required String visibility,
-    Uint8List? imageBytes,
-    String? imageName,
-    Uint8List? audioBytes,
-    String? audioName,
+    List<UploadFile> images = const [],
+    List<UploadFile> audios = const [],
   }) async {
     final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/posts'));
     req.headers['Authorization'] = 'Bearer $token';
     req.fields['body'] = body;
     req.fields['visibility'] = visibility;
-    if (imageBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('images', imageBytes, filename: imageName ?? 'image.jpg'));
+    for (final f in images) {
+      req.files.add(http.MultipartFile.fromBytes('images', f.bytes, filename: f.name));
     }
-    if (audioBytes != null) {
-      req.files.add(http.MultipartFile.fromBytes('audios', audioBytes, filename: audioName ?? 'audio.wav'));
+    for (final f in audios) {
+      req.files.add(http.MultipartFile.fromBytes('audios', f.bytes, filename: f.name));
     }
 
     final http.Response res;
@@ -128,6 +126,7 @@ try {
     return data['id'] as int;
   }
 
+  
   /// テキスト検索 (SearchServlet)  SearchMode: テキスト=1 画像=2 音声=3
   static Future<List<Map<String, dynamic>>> searchPosts(String keyword) async {
     final uri = Uri.parse('$baseUrl/SearchServlet').replace(
