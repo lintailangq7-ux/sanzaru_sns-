@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api_client.dart';
+import '../media_config.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'post.dart';
 import '../Search.Dart' as search;
@@ -377,7 +378,17 @@ if (textHidden) ...[
                   );
                 }
 
-                final imageUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+                // ============================================================
+                // ★【サーバー版】サーバーのApache(/media/)から画像を読む
+                //   APIが filePath を返していないときは、自動でAPI経由に戻る
+                // ============================================================
+                final imageUrl = mediaUrlOf(img, mediaId);
+
+                // ------------------------------------------------------------
+                // ▼▼▼【ローカルDB版】元のコード(ローカルのDB・APIで動かすときはこちら) ▼▼▼
+                // final imageUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+                // ▲▲▲【ローカルDB版】ここまで ▲▲▲
+                // ------------------------------------------------------------
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
@@ -422,7 +433,17 @@ if (textHidden) ...[
                 );
               }
 
-              final audioUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+              // ============================================================
+              // ★【サーバー版】サーバーのApache(/media/)から音声を読む
+              //   APIが filePath を返していないときは、自動でAPI経由に戻る
+              // ============================================================
+                final audioUrl = mediaUrlOf(audio, mediaId);
+
+              // ------------------------------------------------------------
+              // ▼▼▼【ローカルDB版】元のコード(ローカルのDB・APIで動かすときはこちら) ▼▼▼
+              // final audioUrl = '$baseUrl/api/media/$mediaId?token=${ApiClient.token}';
+              // ▲▲▲【ローカルDB版】ここまで ▲▲▲
+              // ------------------------------------------------------------
               return _AudioPlayerTile(
                 fileName: '音声 ${e.key + 1}',
                 audioUrl: audioUrl,
@@ -757,5 +778,3 @@ class _AudioPlayerTileState extends State<_AudioPlayerTile> {
     );
   }
 }
-
-
