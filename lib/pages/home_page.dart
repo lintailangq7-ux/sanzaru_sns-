@@ -4,6 +4,7 @@ import '../media_config.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'post.dart';
 import '../Search.Dart' as search;
+import '../profile_page.dart';
 
 
 
@@ -39,7 +40,12 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() => selectedIndex = 1); // 戻ってきたらホームの表示にする
   }
 //マイページへ遷移
-
+void openProfilePage(){
+  Navigator.push(
+    context,
+  MaterialPageRoute(
+    builder: (context) => const ProfilePage(),),);
+}
  //選択中のタブ(おすすめ、フォロー中)
    int selectedTab = 0;
 
@@ -485,9 +491,8 @@ if (textHidden) ...[
            
           } else if (index == 1) {//ホーム画面
           
-          } else if (index == 2) {
-            //マイページ、遷移はホーム画面が表示される、後ほど変更する
-           
+          } else if (index == 2) {//マイページ
+            openProfilePage();
 
           }
         },
