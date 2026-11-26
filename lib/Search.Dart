@@ -219,9 +219,9 @@ class _SearchPageState extends State<SearchPage> {
 
     // ---------- 音声検索(Chrome用):WAVファイルを選ぶ ----------
   Future<void> _pickAudio() async {
-    final files = await FilePicker.pickFiles(
+        final files = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['wav'], // 検索できるのは WAV だけ
+      allowedExtensions: ['wav', 'mp3', 'm4a', 'aac', 'ogg'],
     );
     if (files.isEmpty) return; // キャンセルしたときは何もしない
     setState(() => _selectedAudio = files.first);
