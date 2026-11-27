@@ -206,7 +206,7 @@ void removeImage(int index) {
   });
 }
 
-// 音声追加
+// 音声追加(2つまで。WAV以外も、サーバーがffmpegで変換して検索できるようにする)
 Future<void> addAudio() async {
   final files = await FilePicker.pickFiles(
     type: FileType.audio,
@@ -219,13 +219,7 @@ Future<void> addAudio() async {
     );
     return;
   }
-  final added = files.take(room).toList();
-  setState(() => selectedAudios.addAll(added));
-  if (added.any((f) => !f.name.toLowerCase().endsWith('.wav'))) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('WAV以外の音声は、音声検索の対象になりません')),
-    );
-  }
+  setState(() => selectedAudios.addAll(files.take(room)));
 }
 
 
