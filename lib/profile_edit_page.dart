@@ -157,14 +157,17 @@ Widget bottomIcon(IconData icon, double size, String name) {
       _backgroundImage,
       );
       if(success == true){
+        //保存成功
         Navigator.pop(context,true);
-      }else{
+        return;
+      }
+        //保存失敗
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('プロフィールの保存に失敗しました'),),);
-      }
-    
+            content: Text('プロフィールの保存に失敗しました'),
+            ),);
     }catch(e){
+        //エラー発生した場合
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('保存中にエラーが発生しました'),),);
@@ -235,7 +238,7 @@ Widget bottomIcon(IconData icon, double size, String name) {
   // 上部背景・戻る・保存
   Widget _buildHeader() {
     return SizedBox(
-      height: 210,
+      height: 230,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -244,10 +247,10 @@ Widget bottomIcon(IconData icon, double size, String name) {
             top: 0,
             left: 0,
             right: 0,
-            height: 150,
+            height: 170,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Colors.grey.shade200,
                 border: Border.all(
                   color: Colors.black,
                   width: 1,
@@ -314,7 +317,7 @@ Widget bottomIcon(IconData icon, double size, String name) {
 
           // プロフィールアイコン
           Positioned(
-            top: 130,
+            top: 150,
             left: 10,
             child: GestureDetector(
               onTap: () => _pickImage(true),
@@ -322,10 +325,10 @@ Widget bottomIcon(IconData icon, double size, String name) {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.black,
+                    color: Colors.grey.shade400,
                     width: 1.5,
                   ),
                 ),
@@ -432,7 +435,7 @@ Widget bottomIcon(IconData icon, double size, String name) {
   // 生年月日
   Widget _buildBirthdayField() {
     return Container(
-      height: 150,
+      height: 110,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: 20,
