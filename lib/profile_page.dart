@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'Search.dart';
 import 'pages/home_page.dart';
+import 'profile_edit_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,7 +19,20 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker picker = ImagePicker();
 
   Uint8List? postImageBytes;
-
+  //検索画面へ遷移
+void openSearchPage(){
+  Navigator.push(
+    context,
+  MaterialPageRoute(
+    builder: (context) => const SearchPage(),),);
+}
+//ホーム画面へ遷移
+void openHomePage(){
+  Navigator.push(
+    context,
+  MaterialPageRoute(
+    builder: (context) => const HomePage(),),);
+}
   // 画像を選択する
   Future<void> selectImage() async {
     final XFile? image = await picker.pickImage(
@@ -58,7 +72,17 @@ class _ProfilePageState extends State<ProfilePage> {
   // 下部メニュー
   Widget bottomIcon(IconData icon, double size, String name) =>
       IconButton(
-        onPressed: () => debugPrint(name),
+        onPressed: () {
+          if(name == '検索'){
+            //検索画面へ
+            openSearchPage();
+          }else if(name == 'ホーム'){
+            //ホーム画面へ
+            openHomePage();
+          }else if(name == 'マイページ'){
+            //マイページなのでなにもしない
+          }
+        },
         icon: Icon(icon, size: size),
       );
 
@@ -86,7 +110,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // プロフィール編集ボタン
   Widget editButton() => OutlinedButton(
-    onPressed: () => debugPrint('プロフィール編集'),
+    onPressed: () {
+      Navigator.push(
+        context, MaterialPageRoute(
+          builder: (context) => const ProfileEditPage(),
+      ),
+      );
+    },
     style: OutlinedButton.styleFrom(
       foregroundColor: Colors.black,
       side: const BorderSide(color: Colors.black),
